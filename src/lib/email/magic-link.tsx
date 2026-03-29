@@ -6,7 +6,6 @@ import {
   Heading,
   Hr,
   Html,
-  Img,
   Preview,
   Section,
   Text,
@@ -16,13 +15,38 @@ import * as React from 'react'
 interface MagicLinkEmailProps {
   magicLinkUrl: string
   userEmail: string
+  isInvitation?: boolean
+  companyName?: string
 }
 
-export function MagicLinkEmail({ magicLinkUrl, userEmail }: MagicLinkEmailProps) {
+export function MagicLinkEmail({
+  magicLinkUrl,
+  userEmail,
+  isInvitation = false,
+  companyName,
+}: MagicLinkEmailProps) {
+  const previewText = isInvitation
+    ? 'Your HR Technology Discovery is Ready'
+    : 'Your OutSail Blueprint sign-in link'
+
+  const headingText = isInvitation
+    ? "You've been invited to OutSail Blueprint"
+    : 'Sign in to OutSail Blueprint'
+
+  const bodyText = isInvitation
+    ? `Your advisor has set up an HR technology discovery workspace${companyName ? ` for ${companyName}` : ''}. Click the button below to get started.`
+    : 'Click the button below to sign in to your account. This link is valid for 15 minutes and can only be used once.'
+
+  const ctaText = isInvitation ? 'Start Discovery' : 'Sign In to OutSail Blueprint'
+
+  const footerText = isInvitation
+    ? `This invitation was sent to ${userEmail}. If you weren't expecting this, you can safely ignore this email.`
+    : `This link was requested for ${userEmail}. If you didn't request this, you can safely ignore this email.`
+
   return (
     <Html>
       <Head />
-      <Preview>Your OutSail Blueprint sign-in link</Preview>
+      <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Logo / Brand */}
@@ -32,15 +56,18 @@ export function MagicLinkEmail({ magicLinkUrl, userEmail }: MagicLinkEmailProps)
 
           {/* Main content */}
           <Section style={contentSection}>
-            <Heading style={heading}>Sign in to OutSail Blueprint</Heading>
-            <Text style={paragraph}>
-              Click the button below to sign in to your account. This link is
-              valid for <strong>15 minutes</strong> and can only be used once.
-            </Text>
+            <Heading style={heading}>{headingText}</Heading>
+            <Text style={paragraph}>{bodyText}</Text>
+
+            {isInvitation && (
+              <Text style={paragraph}>
+                This link is valid for <strong>15 minutes</strong> and can only be used once.
+              </Text>
+            )}
 
             <Section style={buttonContainer}>
               <Button href={magicLinkUrl} style={button}>
-                Sign In to OutSail Blueprint
+                {ctaText}
               </Button>
             </Section>
 
@@ -52,10 +79,7 @@ export function MagicLinkEmail({ magicLinkUrl, userEmail }: MagicLinkEmailProps)
 
             <Hr style={hr} />
 
-            <Text style={footer}>
-              This link was requested for <strong>{userEmail}</strong>. If you
-              didn&apos;t request this, you can safely ignore this email.
-            </Text>
+            <Text style={footer}>{footerText}</Text>
 
             <Text style={footer}>
               &copy; {new Date().getFullYear()} OutSail. All rights reserved.

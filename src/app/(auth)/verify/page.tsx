@@ -21,9 +21,6 @@ function VerifyContent() {
       return
     }
 
-    // Redirect to the API route which handles verification server-side
-    // The API route will set the session cookie and redirect to /dashboard
-    // We navigate there directly.
     router.push(`/api/auth/verify?token=${encodeURIComponent(token)}`)
   }, [searchParams, router])
 

@@ -74,6 +74,17 @@ Core tables: organizations, projects, users, project_members, tech_stack_systems
 
 Full schema is defined in `/docs/SPEC.md` Section 5.3.
 
+### Environment Variable Naming
+Vercel's Turso integration auto-injects credentials with a `blueprint_` prefix (matching the Vercel project name):
+- `blueprint_TURSO_DATABASE_URL`
+- `blueprint_TURSO_AUTH_TOKEN`
+
+All code that reads these vars checks the prefixed name first, then falls back to the unprefixed name:
+```ts
+process.env.blueprint_TURSO_DATABASE_URL || process.env.TURSO_DATABASE_URL
+```
+For local development, set the unprefixed versions in `.env.local`. See `.env.example` for the full list.
+
 ## Build Phases
 **Phase 1** (Foundation): Auth, advisor dashboard, client intake (5 modules), tech stack viz, role-based access.
 **Phase 2** (Intelligence + Chat): Blueprint Assistant chat, transcript processing, Blueprint assembly, completeness scoring.

@@ -32,6 +32,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+<<<<<<< HEAD
 # drizzle migrations output (keep schema, not migrations)
+=======
+# drizzle migration output
+>>>>>>> origin/main
 /drizzle/*.sql
 /drizzle/meta

@@ -72,7 +72,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', ...fontFamily.sans],
+        sans: ['Inter', 'system-ui', '-apple-system', ...fontFamily.sans],
       },
       fontSize: {
         body: ['14px', { lineHeight: '1.5', fontWeight: '400' }],
