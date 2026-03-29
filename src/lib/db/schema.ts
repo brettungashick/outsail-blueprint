@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
-import { createId } from 'cuid2'
+import { createId } from '@paralleldrive/cuid2'
 
 // ============================================================
 // organizations

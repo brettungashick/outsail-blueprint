@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, XCircle } from 'lucide-react'
 
 type VerifyState = 'verifying' | 'error'
 
-export default function VerifyPage() {
+function VerifyContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [state, setState] = useState<VerifyState>('verifying')
@@ -21,9 +21,6 @@ export default function VerifyPage() {
       return
     }
 
-    // Redirect to the API route which handles verification server-side
-    // The API route will set the session cookie and redirect to /dashboard
-    // We navigate there directly.
     router.push(`/api/auth/verify?token=${encodeURIComponent(token)}`)
   }, [searchParams, router])
 
@@ -96,5 +93,19 @@ export default function VerifyPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-outsail-gray-50 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#1D9E75' }} />
+        </div>
+      }
+    >
+      <VerifyContent />
+    </Suspense>
   )
 }
