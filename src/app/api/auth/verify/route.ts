@@ -40,6 +40,11 @@ export async function GET(request: NextRequest) {
         .returning()
         .get()
 
+      if (!inserted) {
+        console.error('[auth/verify] Failed to insert new user for', payload.email)
+        return NextResponse.redirect(`${appUrl}/login?error=server_error`)
+      }
+
       user = inserted
     }
 
