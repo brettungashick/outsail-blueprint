@@ -58,7 +58,8 @@ export async function middleware(request: NextRequest) {
 
   // Redirect already-authenticated users away from auth routes
   if (isAuthRoute && session) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    const home = session.role === 'client' ? '/workspace' : '/dashboard'
+    return NextResponse.redirect(new URL(home, request.url))
   }
 
   // Role-based access control for authenticated users on protected routes
