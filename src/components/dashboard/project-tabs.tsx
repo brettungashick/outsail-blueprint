@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Clock, Users } from 'lucide-react'
 import type { SectionKey, SectionDepth, SectionStatus, ProjectTier, ProjectStatus } from '@/types'
+import { TechStackViz } from '@/components/tech-stack/tech-stack-viz'
+import type { TechStackSystemRow, IntegrationRow } from '@/components/tech-stack/tech-stack-builder'
 
 // ----------------------------------------------------------------
 // Types
@@ -329,6 +331,110 @@ function PlaceholderTab({ label }: { label: string }) {
 }
 
 // ----------------------------------------------------------------
+// Tech Stack Tab
+// ----------------------------------------------------------------
+function TechStackTab({ projectId }: { projectId: string }) {
+  const [systems, setSystems] = useState<TechStackSystemRow[] | null>(null)
+  const [integrationRows, setIntegrationRows] = useState<IntegrationRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch(`/api/projects/${projectId}/tech-stack`)
+        if (!res.ok) throw new Error('Failed to load tech stack')
+        const data = await res.json() as {
+          systems: Array<{
+            id: string
+            system_name: string
+            vendor: string | null
+            system_type: string | null
+            is_primary: boolean | null
+            modules_used: string | null
+            experience_rating: number | null
+            notes: string | null
+          }>
+          integrations: Array<{
+            source_system_id: string
+            target_system_id: string
+            integration_quality: string
+          }>
+        }
+
+        if (cancelled) return
+
+        const parsed: TechStackSystemRow[] = data.systems.map((s) => {
+          let modules: string[] = []
+          try { if (s.modules_used) modules = JSON.parse(s.modules_used) as string[] } catch { /* empty */ }
+          let ratings = { admin: 3, employee: 3, service: 3 }
+          try {
+            if (s.notes) {
+              const n = JSON.parse(s.notes) as { ratings?: typeof ratings }
+              if (n.ratings) ratings = n.ratings
+            }
+          } catch { /* empty */ }
+          return {
+            id: s.id,
+            system_name: s.system_name,
+            vendor: s.vendor,
+            system_type: s.system_type,
+            is_primary: s.is_primary ?? false,
+            modules_used: modules,
+            ratings,
+            experience_rating: s.experience_rating,
+          }
+        })
+
+        const parsedInts: IntegrationRow[] = data.integrations.map((i) => ({
+          source_id: i.source_system_id,
+          target_id: i.target_system_id,
+          quality: i.integration_quality as IntegrationRow['quality'],
+        }))
+
+        setSystems(parsed)
+        setIntegrationRows(parsedInts)
+      } catch {
+        setSystems([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [projectId])
+
+  if (loading) {
+    return (
+      <div className="py-16 text-center text-outsail-gray-600">
+        <div className="inline-flex items-center gap-2">
+          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span className="text-sm">Loading tech stack...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!systems || systems.length === 0) {
+    return (
+      <div className="py-16 text-center text-outsail-gray-600">
+        <p className="text-sm">No tech stack data yet. The client can add their tech stack from their workspace.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="outsail-card">
+      <h3 className="text-header-sm text-outsail-navy mb-4">Tech Stack Map</h3>
+      <TechStackViz systems={systems} integrations={integrationRows} />
+    </div>
+  )
+}
+
+// ----------------------------------------------------------------
 // Main Component
 // ----------------------------------------------------------------
 export function ProjectTabs({ project, blueprintSections }: ProjectTabsProps) {
@@ -364,7 +470,7 @@ export function ProjectTabs({ project, blueprintSections }: ProjectTabsProps) {
       {activeTab === 'overview' && (
         <OverviewTab project={project} blueprintSections={blueprintSections} />
       )}
-      {activeTab === 'tech-stack' && <PlaceholderTab label="Tech Stack" />}
+      {activeTab === 'tech-stack' && <TechStackTab projectId={project.id} />}
       {activeTab === 'blueprint' && <PlaceholderTab label="Blueprint" />}
       {activeTab === 'sessions' && <PlaceholderTab label="Sessions" />}
       {activeTab === 'outputs' && <PlaceholderTab label="Outputs" />}
