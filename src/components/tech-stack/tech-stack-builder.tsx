@@ -34,15 +34,26 @@ interface TechStackBuilderProps {
 
 type IntegrationQuality = IntegrationRow['quality']
 
-const SYSTEM_TYPES = [
-  { value: 'ats', label: 'ATS / Recruiting' },
-  { value: 'lms', label: 'LMS / Learning' },
-  { value: 'performance', label: 'Performance Management' },
-  { value: 'benefits', label: 'Benefits Administration' },
-  { value: 'scheduling', label: 'Scheduling' },
-  { value: 'point_solution', label: 'Point Solution' },
-  { value: 'other', label: 'Other' },
-]
+// ----------------------------------------------------------------
+// Category → system_type mapping for DB storage
+// ----------------------------------------------------------------
+const CATEGORY_TO_SYSTEM_TYPE: Record<string, string> = {
+  'Payroll': 'payroll',
+  'Benefits Admin': 'benefits',
+  'Time & Attendance': 'scheduling',
+  'Onboarding': 'other',
+  'Core HR': 'primary_hris',
+  'Performance': 'performance',
+  'Compensation': 'other',
+  'Learning/LMS': 'lms',
+  'Recruiting/ATS': 'ats',
+  'AI': 'point_solution',
+  'Expense': 'point_solution',
+  'SSO': 'point_solution',
+  'ERP/General Ledger': 'point_solution',
+  'Global Payroll': 'payroll',
+  'Custom': 'other',
+}
 
 const INTEGRATION_OPTIONS: Array<{
   value: IntegrationQuality
@@ -52,38 +63,10 @@ const INTEGRATION_OPTIONS: Array<{
   borderColor: string
   bgColor: string
 }> = [
-  {
-    value: 'fully_integrated',
-    label: 'Fully Integrated',
-    icon: '✅',
-    color: 'text-outsail-teal',
-    borderColor: 'border-outsail-teal',
-    bgColor: 'bg-outsail-teal/5',
-  },
-  {
-    value: 'mostly_automated',
-    label: 'Mostly Automated',
-    icon: '🔄',
-    color: 'text-outsail-amber',
-    borderColor: 'border-outsail-amber',
-    bgColor: 'bg-outsail-amber/5',
-  },
-  {
-    value: 'partially_automated',
-    label: 'Partially Automated',
-    icon: '⚡',
-    color: 'text-outsail-coral',
-    borderColor: 'border-outsail-coral',
-    bgColor: 'bg-outsail-coral/5',
-  },
-  {
-    value: 'fully_manual',
-    label: 'Fully Manual',
-    icon: '📋',
-    color: 'text-red-500',
-    borderColor: 'border-red-300',
-    bgColor: 'bg-red-50',
-  },
+  { value: 'fully_integrated', label: 'Fully Integrated', icon: '✅', color: 'text-outsail-teal', borderColor: 'border-outsail-teal', bgColor: 'bg-outsail-teal/5' },
+  { value: 'mostly_automated', label: 'Mostly Automated', icon: '🔄', color: 'text-outsail-amber', borderColor: 'border-outsail-amber', bgColor: 'bg-outsail-amber/5' },
+  { value: 'partially_automated', label: 'Partially Automated', icon: '⚡', color: 'text-outsail-coral', borderColor: 'border-outsail-coral', bgColor: 'bg-outsail-coral/5' },
+  { value: 'fully_manual', label: 'Fully Manual', icon: '📋', color: 'text-red-500', borderColor: 'border-red-300', bgColor: 'bg-red-50' },
 ]
 
 // ----------------------------------------------------------------
@@ -92,7 +75,7 @@ const INTEGRATION_OPTIONS: Array<{
 interface PointSolutionDraft {
   tempId: string
   vendor: string
-  system_type: string
+  category: string
   modules_used: string[]
   ratings: { admin: number; employee: number; service: number }
 }
@@ -138,7 +121,7 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 export function TechStackBuilder({
   projectId,
   initialSystems = [],
-  initialIntegrations = [],
+  initialIntegrations: _initialIntegrations = [],
   onComplete,
 }: TechStackBuilderProps) {
   const [step, setStep] = useState(1)
@@ -164,19 +147,15 @@ export function TechStackBuilder({
       .map((s) => ({
         tempId: s.id ?? String(Math.random()),
         vendor: s.vendor ?? s.system_name,
-        system_type: s.system_type ?? 'other',
+        category: s.system_type ?? 'other',
         modules_used: s.modules_used,
         ratings: s.ratings,
       }))
   )
 
-  // Integration state
-  // Maps tempId -> quality (each satellite connects to primary)
+  // Integration state: tempId → quality
   const [integrationMap, setIntegrationMap] = useState<Record<string, IntegrationQuality>>(() => {
     const map: Record<string, IntegrationQuality> = {}
-    if (initialIntegrations.length > 0 && initialSystems.length > 0) {
-      // We can't easily map back here without IDs, so start empty
-    }
     pointSolutions.forEach((ps) => {
       map[ps.tempId] = 'partially_automated'
     })
@@ -187,7 +166,7 @@ export function TechStackBuilder({
   const [addingNew, setAddingNew] = useState(false)
   const [newSolution, setNewSolution] = useState<Omit<PointSolutionDraft, 'tempId'>>({
     vendor: '',
-    system_type: 'other',
+    category: 'Recruiting/ATS',
     modules_used: [],
     ratings: { admin: 3, employee: 3, service: 3 },
   })
@@ -215,7 +194,7 @@ export function TechStackBuilder({
     const ps: PointSolutionDraft = { ...newSolution, tempId }
     setPointSolutions((prev) => [...prev, ps])
     setIntegrationMap((prev) => ({ ...prev, [tempId]: 'partially_automated' }))
-    setNewSolution({ vendor: '', system_type: 'other', modules_used: [], ratings: { admin: 3, employee: 3, service: 3 } })
+    setNewSolution({ vendor: '', category: 'Recruiting/ATS', modules_used: [], ratings: { admin: 3, employee: 3, service: 3 } })
     setAddingNew(false)
   }
 
@@ -228,6 +207,11 @@ export function TechStackBuilder({
     })
   }
 
+  // Modules not covered by primary platform
+  const uncoveredCategories = HCM_CAPABILITIES.filter(
+    (cap) => !primaryModules.includes(cap) && cap !== 'Custom'
+  )
+
   // ----------------------------------------------------------------
   // Submit
   // ----------------------------------------------------------------
@@ -236,7 +220,6 @@ export function TechStackBuilder({
     setError(null)
 
     try {
-      // POST primary system
       const primaryRes = await fetch(`/api/projects/${projectId}/tech-stack`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -253,7 +236,6 @@ export function TechStackBuilder({
       if (!primaryRes.ok) throw new Error('Failed to save primary system')
       const { systemId: primaryId } = await primaryRes.json() as { systemId: string }
 
-      // POST each point solution
       const satelliteIds: Record<string, string> = {}
       for (const ps of pointSolutions) {
         const res = await fetch(`/api/projects/${projectId}/tech-stack`, {
@@ -263,9 +245,9 @@ export function TechStackBuilder({
             system_name: ps.vendor,
             vendor: ps.vendor,
             is_primary: false,
-            modules_used: ps.modules_used,
+            modules_used: ps.modules_used.length > 0 ? ps.modules_used : [ps.category],
             ratings: ps.ratings,
-            system_type: ps.system_type,
+            system_type: CATEGORY_TO_SYSTEM_TYPE[ps.category] ?? 'point_solution',
           }),
         })
         if (!res.ok) throw new Error(`Failed to save ${ps.vendor}`)
@@ -273,7 +255,6 @@ export function TechStackBuilder({
         satelliteIds[ps.tempId] = systemId
       }
 
-      // POST integrations
       const integrationPayload = pointSolutions.map((ps) => ({
         source_id: satelliteIds[ps.tempId],
         target_id: primaryId,
@@ -314,7 +295,11 @@ export function TechStackBuilder({
             value={primaryVendor}
             onChange={handlePrimaryVendorChange}
             placeholder="Search for your HR platform..."
+            canBePrimary={true}
           />
+          <p className="text-xs text-outsail-gray-600 mt-2">
+            Can&apos;t find your system? Type the name and select the custom entry option.
+          </p>
         </div>
       </div>
     )
@@ -331,10 +316,10 @@ export function TechStackBuilder({
             Which modules does {primaryVendor || 'your platform'} cover for you?
           </h2>
           <p className="text-body text-outsail-gray-600">
-            Select all the capabilities you actively use in this system.
+            Select all capabilities you actively use in this system.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {HCM_CAPABILITIES.map((cap) => {
             const checked = primaryModules.includes(cap)
             return (
@@ -379,7 +364,7 @@ export function TechStackBuilder({
             How would you rate {primaryVendor || 'your platform'} for...
           </h2>
           <p className="text-body text-outsail-gray-600">
-            Rate your overall satisfaction in each area (1 = poor, 5 = excellent).
+            Rate your overall satisfaction (1 = poor, 5 = excellent).
           </p>
         </div>
         <div className="outsail-card max-w-md space-y-4">
@@ -412,11 +397,25 @@ export function TechStackBuilder({
         <div>
           <h2 className="text-header-sm text-outsail-navy mb-1">Add point solutions</h2>
           <p className="text-body text-outsail-gray-600">
-            Other HR tools and systems you use alongside {primaryVendor || 'your primary platform'}.
+            Other HR tools you use alongside {primaryVendor || 'your primary platform'}.
           </p>
         </div>
 
-        {/* Existing point solutions */}
+        {uncoveredCategories.length > 0 && (
+          <div className="rounded-card border border-outsail-gray-200 p-4 bg-outsail-gray-50">
+            <p className="text-label text-outsail-navy mb-2">
+              Modules not covered by {primaryVendor || 'your primary platform'}:
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {uncoveredCategories.map((cat) => (
+                <span key={cat} className="text-xs bg-white border border-outsail-gray-200 px-2 py-0.5 rounded-full text-outsail-gray-600">
+                  {cat}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {pointSolutions.length > 0 && (
           <div className="space-y-3">
             {pointSolutions.map((ps) => {
@@ -426,7 +425,7 @@ export function TechStackBuilder({
                   <button
                     type="button"
                     onClick={() => removePointSolution(ps.tempId)}
-                    className="absolute top-4 right-4 text-outsail-gray-600 hover:text-outsail-coral transition-colors"
+                    className="absolute top-4 right-4 text-outsail-gray-600 hover:text-outsail-coral transition-colors text-lg leading-none"
                     aria-label="Remove"
                   >
                     ×
@@ -434,92 +433,56 @@ export function TechStackBuilder({
                   <div className="flex items-start gap-3">
                     <div>
                       <p className="text-sm font-semibold text-outsail-navy">{ps.vendor}</p>
-                      <p className="text-xs text-outsail-gray-600 mt-0.5">
-                        {SYSTEM_TYPES.find((t) => t.value === ps.system_type)?.label ?? ps.system_type}
-                      </p>
+                      <p className="text-xs text-outsail-gray-600 mt-0.5">{ps.category}</p>
                     </div>
                     <div className="ml-auto mr-8 flex items-center gap-1 text-outsail-amber">
                       <span>{'★'.repeat(avgRating)}{'☆'.repeat(5 - avgRating)}</span>
                       <span className="text-xs text-outsail-gray-600 ml-1">{avgRating}/5</span>
                     </div>
                   </div>
-                  {ps.modules_used.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      {ps.modules_used.map((m) => (
-                        <span key={m} className="text-xs bg-outsail-gray-50 border border-outsail-gray-200 px-1.5 py-0.5 rounded-full text-outsail-gray-600">
-                          {m}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )
             })}
           </div>
         )}
 
-        {/* Add new form */}
         {addingNew ? (
-          <div className="outsail-card space-y-4 border-outsail-teal/30">
+          <div className="outsail-card space-y-4 border-2 border-outsail-teal/20">
             <h3 className="text-label text-outsail-navy font-semibold">New point solution</h3>
+
             <div>
-              <label className="block text-label text-outsail-gray-600 mb-1">Vendor / System Name</label>
-              <VendorCombobox
-                value={newSolution.vendor}
-                onChange={(v) => setNewSolution((s) => ({ ...s, vendor: v }))}
-                placeholder="Search or type system name..."
-              />
-            </div>
-            <div>
-              <label className="block text-label text-outsail-gray-600 mb-1">System Type</label>
+              <label className="block text-label text-outsail-gray-600 mb-1">Category</label>
               <select
-                value={newSolution.system_type}
-                onChange={(e) => setNewSolution((s) => ({ ...s, system_type: e.target.value }))}
+                value={newSolution.category}
+                onChange={(e) =>
+                  setNewSolution((s) => ({ ...s, category: e.target.value, vendor: '', modules_used: [] }))
+                }
                 className="w-full px-3 py-2 border border-outsail-gray-200 rounded-card text-body text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal"
               >
-                {SYSTEM_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                {HCM_CAPABILITIES.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
             </div>
+
             <div>
-              <label className="block text-label text-outsail-gray-600 mb-2">Modules / Capabilities Used</label>
-              <div className="grid grid-cols-2 gap-2">
-                {HCM_CAPABILITIES.map((cap) => {
-                  const checked = newSolution.modules_used.includes(cap)
-                  return (
-                    <button
-                      key={cap}
-                      type="button"
-                      onClick={() =>
-                        setNewSolution((s) => ({
-                          ...s,
-                          modules_used: checked
-                            ? s.modules_used.filter((c) => c !== cap)
-                            : [...s.modules_used, cap],
-                        }))
-                      }
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded border text-left text-xs transition-all ${
-                        checked
-                          ? 'border-outsail-teal bg-outsail-teal/5 text-outsail-navy'
-                          : 'border-outsail-gray-200 bg-white text-outsail-gray-600 hover:border-outsail-teal/40'
-                      }`}
-                    >
-                      <div className={`w-3 h-3 rounded border flex-shrink-0 flex items-center justify-center ${checked ? 'bg-outsail-teal border-outsail-teal' : 'border-outsail-gray-200'}`}>
-                        {checked && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                      </div>
-                      {cap}
-                    </button>
-                  )
-                })}
-              </div>
+              <label className="block text-label text-outsail-gray-600 mb-1">Vendor / System Name</label>
+              <VendorCombobox
+                key={newSolution.category}
+                value={newSolution.vendor}
+                onChange={(v) => setNewSolution((s) => ({ ...s, vendor: v }))}
+                placeholder="Search or type system name..."
+                category={newSolution.category}
+              />
             </div>
+
             <div className="space-y-3">
               <label className="block text-label text-outsail-gray-600">Ratings</label>
               <StarRating label="Admin experience" value={newSolution.ratings.admin} onChange={(v) => setNewSolution((s) => ({ ...s, ratings: { ...s.ratings, admin: v } }))} />
               <StarRating label="Employee experience" value={newSolution.ratings.employee} onChange={(v) => setNewSolution((s) => ({ ...s, ratings: { ...s.ratings, employee: v } }))} />
               <StarRating label="Service quality" value={newSolution.ratings.service} onChange={(v) => setNewSolution((s) => ({ ...s, ratings: { ...s.ratings, service: v } }))} />
             </div>
+
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
@@ -531,7 +494,10 @@ export function TechStackBuilder({
               </button>
               <button
                 type="button"
-                onClick={() => { setAddingNew(false); setNewSolution({ vendor: '', system_type: 'other', modules_used: [], ratings: { admin: 3, employee: 3, service: 3 } }) }}
+                onClick={() => {
+                  setAddingNew(false)
+                  setNewSolution({ vendor: '', category: 'Recruiting/ATS', modules_used: [], ratings: { admin: 3, employee: 3, service: 3 } })
+                }}
                 className="px-4 py-2 border border-outsail-gray-200 text-outsail-gray-600 rounded-card text-label hover:border-outsail-navy transition-colors"
               >
                 Cancel
@@ -583,6 +549,7 @@ export function TechStackBuilder({
               <div key={ps.tempId} className="outsail-card">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="font-semibold text-outsail-navy text-sm">{ps.vendor}</span>
+                  <span className="text-xs text-outsail-gray-600 bg-outsail-gray-50 border border-outsail-gray-200 px-1.5 py-0.5 rounded-full">{ps.category}</span>
                   <span className="text-outsail-gray-200 mx-1">↔</span>
                   <span className="text-outsail-gray-600 text-sm">{primaryVendor || 'Primary Platform'}</span>
                 </div>

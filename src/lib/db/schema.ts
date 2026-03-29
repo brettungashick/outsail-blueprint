@@ -453,6 +453,29 @@ export const generatedOutputs = sqliteTable('generated_outputs', {
 })
 
 // ============================================================
+// vendors
+// ============================================================
+export const vendors = sqliteTable('vendors', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  product_name: text('product_name').notNull(),
+  vendor_company: text('vendor_company'),
+  website: text('website'),
+  logo_url: text('logo_url'),
+  primary_color: text('primary_color'),
+  can_be_primary: integer('can_be_primary', { mode: 'boolean' }).default(false),
+  suggested_categories: text('suggested_categories'), // JSON array
+  is_active: integer('is_active', { mode: 'boolean' }).default(true),
+  created_at: integer('created_at', { mode: 'timestamp' }).$defaultFn(
+    () => new Date()
+  ),
+  updated_at: integer('updated_at', { mode: 'timestamp' }).$defaultFn(
+    () => new Date()
+  ),
+})
+
+// ============================================================
 // Type exports (inferred from schema)
 // ============================================================
 export type Organization = typeof organizations.$inferSelect
@@ -499,3 +522,6 @@ export type NewChatContext = typeof chatContexts.$inferInsert
 
 export type GeneratedOutput = typeof generatedOutputs.$inferSelect
 export type NewGeneratedOutput = typeof generatedOutputs.$inferInsert
+
+export type Vendor = typeof vendors.$inferSelect
+export type NewVendor = typeof vendors.$inferInsert

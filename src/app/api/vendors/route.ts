@@ -1,0 +1,70 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import { vendors } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+
+export const dynamic = 'force-dynamic'
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = request.nextUrl
+  const q = searchParams.get('q')?.toLowerCase() ?? ''
+  const canBePrimaryParam = searchParams.get('can_be_primary')
+  const category = searchParams.get('category')?.toLowerCase() ?? ''
+
+  try {
+    // Start with all active vendors
+    let rows = await db
+      .select()
+      .from(vendors)
+      .where(eq(vendors.is_active, true))
+      .all()
+
+    // Filter by can_be_primary
+    if (canBePrimaryParam === 'true') {
+      rows = rows.filter((v) => v.can_be_primary)
+    } else if (canBePrimaryParam === 'false') {
+      rows = rows.filter((v) => !v.can_be_primary)
+    }
+
+    // Filter by category
+    if (category) {
+      rows = rows.filter((v) => {
+        if (!v.suggested_categories) return false
+        try {
+          const cats = JSON.parse(v.suggested_categories) as string[]
+          return cats.some((c) => c.toLowerCase() === category)
+        } catch {
+          return false
+        }
+      })
+    }
+
+    // Filter by search query
+    if (q) {
+      rows = rows.filter(
+        (v) =>
+          v.product_name.toLowerCase().includes(q) ||
+          (v.vendor_company?.toLowerCase().includes(q) ?? false)
+      )
+    }
+
+    // Parse suggested_categories back to arrays for response
+    const result = rows.map((v) => ({
+      id: v.id,
+      product_name: v.product_name,
+      vendor_company: v.vendor_company,
+      website: v.website,
+      logo_url: v.logo_url,
+      primary_color: v.primary_color,
+      can_be_primary: v.can_be_primary,
+      suggested_categories: v.suggested_categories
+        ? (() => { try { return JSON.parse(v.suggested_categories!) as string[] } catch { return [] } })()
+        : [],
+    }))
+
+    return NextResponse.json({ vendors: result })
+  } catch (err) {
+    console.error('[/api/vendors] Error:', err)
+    return NextResponse.json({ error: 'Failed to fetch vendors' }, { status: 500 })
+  }
+}

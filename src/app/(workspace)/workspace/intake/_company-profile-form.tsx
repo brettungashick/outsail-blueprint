@@ -7,13 +7,17 @@ interface InitialValues {
   company_name?: string
   headcount_current?: number
   headcount_projected?: number
-  hq_location?: string
-  additional_locations?: string[]
+  hq_city?: string
+  hq_state?: string
+  hq_country?: string
+  is_multi_state?: boolean
+  multi_state_count?: number
+  has_international?: boolean
+  international_employment_types?: string[]
   workforce_salaried_pct?: number
   workforce_fulltime_pct?: number
   ownership_structure?: string
   industry?: string
-  growth_notes?: string
 }
 
 interface CompanyProfileFormProps {
@@ -29,6 +33,53 @@ const OWNERSHIP_OPTIONS = [
   { value: 'nonprofit', label: 'Nonprofit / Public Sector' },
 ]
 
+const INDUSTRY_OPTIONS = [
+  'Technology / Software',
+  'Healthcare / Life Sciences',
+  'Financial Services / Banking',
+  'Manufacturing / Industrial',
+  'Retail / Consumer Goods',
+  'Professional Services / Consulting',
+  'Media / Entertainment',
+  'Education',
+  'Nonprofit / Government',
+  'Real Estate / Construction',
+  'Energy / Utilities',
+  'Transportation / Logistics',
+  'Hospitality / Travel',
+  'Insurance',
+  'Legal Services',
+  'Agriculture / Food & Beverage',
+  'Pharmaceuticals / Biotech',
+  'Other',
+]
+
+const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
+  'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
+]
+
+const COUNTRIES = [
+  'United States', 'Canada', 'United Kingdom', 'Australia', 'Germany',
+  'France', 'Netherlands', 'Ireland', 'India', 'Singapore',
+  'Japan', 'Brazil', 'Mexico', 'Spain', 'Italy',
+  'Sweden', 'Denmark', 'Norway', 'Finland', 'Switzerland',
+  'Belgium', 'Poland', 'Czech Republic', 'Hungary', 'Romania',
+  'South Africa', 'United Arab Emirates', 'Israel', 'New Zealand',
+  'Philippines', 'Malaysia', 'Indonesia', 'South Korea', 'China',
+  'Other',
+]
+
+const INTL_EMPLOYMENT_TYPES = [
+  { value: 'legal_entity', label: 'We have legal entities abroad' },
+  { value: 'eor', label: 'We use an EOR (like Deel, Remote, etc.)' },
+  { value: 'contractors', label: 'Contractors only' },
+  { value: 'mix', label: 'Mix of the above' },
+]
+
 export function CompanyProfileForm({ projectId, initialValues }: CompanyProfileFormProps) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
@@ -41,10 +92,20 @@ export function CompanyProfileForm({ projectId, initialValues }: CompanyProfileF
   const [headcountProjected, setHeadcountProjected] = useState<string>(
     initialValues.headcount_projected != null ? String(initialValues.headcount_projected) : ''
   )
-  const [hqLocation, setHqLocation] = useState(initialValues.hq_location ?? '')
-  const [additionalLocations, setAdditionalLocations] = useState<string[]>(
-    initialValues.additional_locations ?? []
+
+  // Location fields
+  const [hqCity, setHqCity] = useState(initialValues.hq_city ?? '')
+  const [hqCountry, setHqCountry] = useState(initialValues.hq_country ?? 'United States')
+  const [hqState, setHqState] = useState(initialValues.hq_state ?? '')
+  const [isMultiState, setIsMultiState] = useState(initialValues.is_multi_state ?? false)
+  const [multiStateCount, setMultiStateCount] = useState<string>(
+    initialValues.multi_state_count != null ? String(initialValues.multi_state_count) : ''
   )
+  const [hasInternational, setHasInternational] = useState(initialValues.has_international ?? false)
+  const [intlEmploymentTypes, setIntlEmploymentTypes] = useState<string[]>(
+    initialValues.international_employment_types ?? []
+  )
+
   const [workforceSalaried, setWorkforceSalaried] = useState<string>(
     initialValues.workforce_salaried_pct != null ? String(initialValues.workforce_salaried_pct) : ''
   )
@@ -53,18 +114,13 @@ export function CompanyProfileForm({ projectId, initialValues }: CompanyProfileF
   )
   const [ownershipStructure, setOwnershipStructure] = useState(initialValues.ownership_structure ?? '')
   const [industry, setIndustry] = useState(initialValues.industry ?? '')
-  const [growthNotes, setGrowthNotes] = useState(initialValues.growth_notes ?? '')
 
-  function addLocation() {
-    setAdditionalLocations((prev) => [...prev, ''])
-  }
+  const isUS = hqCountry === 'United States'
 
-  function removeLocation(index: number) {
-    setAdditionalLocations((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  function updateLocation(index: number, value: string) {
-    setAdditionalLocations((prev) => prev.map((loc, i) => (i === index ? value : loc)))
+  function toggleIntlType(value: string) {
+    setIntlEmploymentTypes((prev) =>
+      prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value]
+    )
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -77,13 +133,17 @@ export function CompanyProfileForm({ projectId, initialValues }: CompanyProfileF
         company_name: companyName || undefined,
         headcount_current: headcountCurrent ? parseInt(headcountCurrent, 10) : undefined,
         headcount_projected: headcountProjected ? parseInt(headcountProjected, 10) : undefined,
-        hq_location: hqLocation || undefined,
-        additional_locations: additionalLocations.filter((l) => l.trim()),
+        hq_city: hqCity || undefined,
+        hq_country: hqCountry || undefined,
+        hq_state: isUS ? (hqState || undefined) : undefined,
+        is_multi_state: isUS ? isMultiState : undefined,
+        multi_state_count: isUS && isMultiState && multiStateCount ? parseInt(multiStateCount, 10) : undefined,
+        has_international: hasInternational,
+        international_employment_types: hasInternational ? intlEmploymentTypes : undefined,
         workforce_salaried_pct: workforceSalaried ? parseFloat(workforceSalaried) : undefined,
         workforce_fulltime_pct: workforceFulltime ? parseFloat(workforceFulltime) : undefined,
         ownership_structure: ownershipStructure || undefined,
         industry: industry || undefined,
-        growth_notes: growthNotes || undefined,
       }
 
       const res = await fetch(`/api/projects/${projectId}/company-profile`, {
@@ -108,6 +168,7 @@ export function CompanyProfileForm({ projectId, initialValues }: CompanyProfileF
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="outsail-card space-y-5">
+
         {/* Company Name */}
         <div>
           <label className="block text-label text-outsail-navy mb-1.5">
@@ -137,7 +198,7 @@ export function CompanyProfileForm({ projectId, initialValues }: CompanyProfileF
             />
           </div>
           <div>
-            <label className="block text-label text-outsail-navy mb-1.5">Projected Headcount in 3 Years</label>
+            <label className="block text-label text-outsail-navy mb-1.5">Projected Headcount (3 Years)</label>
             <input
               type="number"
               min={1}
@@ -149,58 +210,153 @@ export function CompanyProfileForm({ projectId, initialValues }: CompanyProfileF
           </div>
         </div>
 
-        {/* HQ Location */}
-        <div>
-          <label className="block text-label text-outsail-navy mb-1.5">Primary HQ Location</label>
-          <input
-            type="text"
-            value={hqLocation}
-            onChange={(e) => setHqLocation(e.target.value)}
-            placeholder="San Francisco, CA"
-            className="w-full px-3 py-2 border border-outsail-gray-200 rounded-card text-body text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal transition-colors"
-          />
-        </div>
+        {/* ── HQ Location ── */}
+        <div className="space-y-4">
+          <p className="text-label text-outsail-navy font-semibold">HQ Location</p>
 
-        {/* Additional Locations */}
-        <div>
-          <label className="block text-label text-outsail-navy mb-1.5">Additional Locations</label>
-          <div className="space-y-2">
-            {additionalLocations.map((loc, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={loc}
-                  onChange={(e) => updateLocation(i, e.target.value)}
-                  placeholder={`Location ${i + 2}`}
-                  className="flex-1 px-3 py-2 border border-outsail-gray-200 rounded-card text-body text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeLocation(i)}
-                  className="w-8 h-8 flex items-center justify-center text-outsail-gray-600 hover:text-outsail-coral rounded transition-colors flex-shrink-0"
-                  aria-label="Remove location"
+          {/* City + Country row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-label text-outsail-navy mb-1.5">City</label>
+              <input
+                type="text"
+                value={hqCity}
+                onChange={(e) => setHqCity(e.target.value)}
+                placeholder="San Francisco"
+                className="w-full px-3 py-2 border border-outsail-gray-200 rounded-card text-body text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-label text-outsail-navy mb-1.5">Country</label>
+              <select
+                value={hqCountry}
+                onChange={(e) => {
+                  setHqCountry(e.target.value)
+                  setHqState('')
+                  setIsMultiState(false)
+                  setMultiStateCount('')
+                }}
+                className="w-full px-3 py-2 border border-outsail-gray-200 rounded-card text-body text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal transition-colors"
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* US-specific: State + multi-state */}
+          {isUS && (
+            <div className="space-y-4 pl-4 border-l-2 border-outsail-teal/20">
+              <div>
+                <label className="block text-label text-outsail-navy mb-1.5">State</label>
+                <select
+                  value={hqState}
+                  onChange={(e) => setHqState(e.target.value)}
+                  className="w-full sm:w-48 px-3 py-2 border border-outsail-gray-200 rounded-card text-body text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal transition-colors"
                 >
-                  ×
-                </button>
+                  <option value="">Select state...</option>
+                  {US_STATES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={addLocation}
-              className="flex items-center gap-1.5 text-label text-outsail-teal hover:text-outsail-teal/80 transition-colors"
-            >
-              <span className="text-lg leading-none">+</span>
-              Add Location
-            </button>
+
+              {/* Multi-state question */}
+              <div>
+                <p className="text-label text-outsail-navy mb-2">Are you operating in multiple states?</p>
+                <div className="flex gap-4">
+                  {([{ v: true, l: 'Yes' }, { v: false, l: 'No' }] as const).map(({ v, l }) => (
+                    <label key={l} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="multi_state"
+                        checked={isMultiState === v}
+                        onChange={() => {
+                          setIsMultiState(v)
+                          if (!v) setMultiStateCount('')
+                        }}
+                        className="accent-outsail-teal"
+                      />
+                      <span className="text-body text-outsail-slate">{l}</span>
+                    </label>
+                  ))}
+                </div>
+                {isMultiState && (
+                  <div className="mt-3">
+                    <label className="block text-label text-outsail-navy mb-1.5">How many states?</label>
+                    <input
+                      type="number"
+                      min={2}
+                      value={multiStateCount}
+                      onChange={(e) => setMultiStateCount(e.target.value)}
+                      placeholder="e.g. 12"
+                      className="w-32 px-3 py-2 border border-outsail-gray-200 rounded-card text-body text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal transition-colors"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* International employees */}
+          <div>
+            <p className="text-label text-outsail-navy mb-2">
+              Do you have employees outside of {hqCountry || 'your country'}?
+            </p>
+            <div className="flex gap-4">
+              {([{ v: true, l: 'Yes' }, { v: false, l: 'No' }] as const).map(({ v, l }) => (
+                <label key={l} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="has_international"
+                    checked={hasInternational === v}
+                    onChange={() => {
+                      setHasInternational(v)
+                      if (!v) setIntlEmploymentTypes([])
+                    }}
+                    className="accent-outsail-teal"
+                  />
+                  <span className="text-body text-outsail-slate">{l}</span>
+                </label>
+              ))}
+            </div>
+
+            {hasInternational && (
+              <div className="mt-3 pl-4 border-l-2 border-outsail-teal/20 space-y-2.5">
+                <p className="text-label text-outsail-navy">How do you employ people internationally?</p>
+                {INTL_EMPLOYMENT_TYPES.map(({ value, label }) => (
+                  <label key={value} className="flex items-center gap-2.5 cursor-pointer">
+                    <div
+                      role="checkbox"
+                      aria-checked={intlEmploymentTypes.includes(value)}
+                      tabIndex={0}
+                      onClick={() => toggleIntlType(value)}
+                      onKeyDown={(e) => e.key === ' ' && toggleIntlType(value)}
+                      className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center cursor-pointer transition-colors ${
+                        intlEmploymentTypes.includes(value)
+                          ? 'bg-outsail-teal border-outsail-teal'
+                          : 'border-outsail-gray-200 bg-white'
+                      }`}
+                    >
+                      {intlEmploymentTypes.includes(value) && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-body text-outsail-slate">{label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Workforce composition */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-label text-outsail-navy mb-1.5">
-              Workforce % Salaried
-            </label>
+            <label className="block text-label text-outsail-navy mb-1.5">Workforce % Salaried</label>
             <div className="relative">
               <input
                 type="number"
@@ -215,9 +371,7 @@ export function CompanyProfileForm({ projectId, initialValues }: CompanyProfileF
             </div>
           </div>
           <div>
-            <label className="block text-label text-outsail-navy mb-1.5">
-              Workforce % Full-Time
-            </label>
+            <label className="block text-label text-outsail-navy mb-1.5">Workforce % Full-Time</label>
             <div className="relative">
               <input
                 type="number"
@@ -251,25 +405,16 @@ export function CompanyProfileForm({ projectId, initialValues }: CompanyProfileF
         {/* Industry */}
         <div>
           <label className="block text-label text-outsail-navy mb-1.5">Industry</label>
-          <input
-            type="text"
+          <select
             value={industry}
             onChange={(e) => setIndustry(e.target.value)}
-            placeholder="e.g. Technology, Healthcare, Manufacturing"
             className="w-full px-3 py-2 border border-outsail-gray-200 rounded-card text-body text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal transition-colors"
-          />
-        </div>
-
-        {/* Growth Notes */}
-        <div>
-          <label className="block text-label text-outsail-navy mb-1.5">Growth Notes</label>
-          <textarea
-            value={growthNotes}
-            onChange={(e) => setGrowthNotes(e.target.value)}
-            placeholder="Describe any planned growth, acquisitions, or strategic changes..."
-            rows={4}
-            className="w-full px-3 py-2 border border-outsail-gray-200 rounded-card text-body text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal transition-colors resize-none"
-          />
+          >
+            <option value="">Select industry...</option>
+            {INDUSTRY_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         </div>
       </div>
 

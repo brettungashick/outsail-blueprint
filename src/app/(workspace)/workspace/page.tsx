@@ -125,7 +125,7 @@ export default async function WorkspacePage() {
   const completedCount = sections.filter((s) => s.status === 'complete').length
 
   // Determine intake completion state
-  const hasCompanyProfile = project?.scope_notes?.startsWith('{"__v":1') ?? false
+  const hasCompanyProfile = project?.scope_notes?.startsWith('{"__v":') ?? false
   let hasTechStack = false
   if (project) {
     try {
@@ -143,7 +143,7 @@ export default async function WorkspacePage() {
 
   // Don't show raw JSON in the scope notes section
   const displayScopeNotes =
-    project?.scope_notes && !project.scope_notes.startsWith('{"__v":1')
+    project?.scope_notes && !project.scope_notes.startsWith('{"__v":')
       ? project.scope_notes
       : null
 

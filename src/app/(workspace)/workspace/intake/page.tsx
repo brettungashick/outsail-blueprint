@@ -12,15 +12,19 @@ export const dynamic = 'force-dynamic'
 const INTAKE_STEPS = ['Company Profile', 'Tech Stack', 'Requirements', 'Processes', 'Review']
 
 interface CompanyProfileData {
-  __v: 1
+  __v: number
   headcount_projected?: number
-  hq_location?: string
-  additional_locations?: string[]
+  hq_city?: string
+  hq_state?: string
+  hq_country?: string
+  is_multi_state?: boolean
+  multi_state_count?: number
+  has_international?: boolean
+  international_employment_types?: string[]
   workforce_salaried_pct?: number
   workforce_fulltime_pct?: number
   ownership_structure?: string
   industry?: string
-  growth_notes?: string
 }
 
 export default async function IntakePage() {
@@ -77,7 +81,7 @@ export default async function IntakePage() {
 
   // Parse company profile from scope_notes
   let profile: CompanyProfileData | null = null
-  if (project.scope_notes?.startsWith('{"__v":1')) {
+  if (project.scope_notes?.startsWith('{"__v":')) {
     try {
       profile = JSON.parse(project.scope_notes) as CompanyProfileData
     } catch {
@@ -102,13 +106,17 @@ export default async function IntakePage() {
           company_name: project.client_company_name,
           headcount_current: project.headcount ?? undefined,
           headcount_projected: profile?.headcount_projected,
-          hq_location: profile?.hq_location,
-          additional_locations: profile?.additional_locations ?? [],
+          hq_city: profile?.hq_city,
+          hq_state: profile?.hq_state,
+          hq_country: profile?.hq_country,
+          is_multi_state: profile?.is_multi_state,
+          multi_state_count: profile?.multi_state_count,
+          has_international: profile?.has_international,
+          international_employment_types: profile?.international_employment_types,
           workforce_salaried_pct: profile?.workforce_salaried_pct,
           workforce_fulltime_pct: profile?.workforce_fulltime_pct,
           ownership_structure: profile?.ownership_structure,
           industry: profile?.industry,
-          growth_notes: profile?.growth_notes,
         }}
       />
     </div>

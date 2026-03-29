@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { eq, or } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { projects, organizations, projectMembers } from '@/lib/db/schema'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
 import { createId } from '@paralleldrive/cuid2'
 
 interface CompanyProfileData {
-  __v: 1
+  __v: 2
   headcount_projected?: number
-  hq_location?: string
-  additional_locations?: string[]
+  hq_city?: string
+  hq_state?: string
+  hq_country?: string
+  is_multi_state?: boolean
+  multi_state_count?: number
+  has_international?: boolean
+  international_employment_types?: string[]
   workforce_salaried_pct?: number
   workforce_fulltime_pct?: number
   ownership_structure?: string
   industry?: string
-  growth_notes?: string
 }
 
 async function verifyAccess(request: NextRequest, projectId: string) {
@@ -24,7 +28,6 @@ async function verifyAccess(request: NextRequest, projectId: string) {
   const session = await verifySessionToken(sessionCookie.value)
   if (!session) return null
 
-  // Check project membership
   const project = await db
     .select()
     .from(projects)
@@ -33,16 +36,13 @@ async function verifyAccess(request: NextRequest, projectId: string) {
 
   if (!project) return null
 
-  // Check if user is creator or member
   const isMember = project.created_by === session.userId
 
   if (!isMember) {
     const membership = await db
       .select()
       .from(projectMembers)
-      .where(
-        eq(projectMembers.project_id, projectId)
-      )
+      .where(eq(projectMembers.project_id, projectId))
       .all()
 
     const hasMembership = membership.some((m) => m.user_id === session.userId)
@@ -64,7 +64,7 @@ export async function GET(
   const { project } = access
 
   let profile: CompanyProfileData | null = null
-  if (project.scope_notes?.startsWith('{"__v":1')) {
+  if (project.scope_notes?.startsWith('{"__v":')) {
     try {
       profile = JSON.parse(project.scope_notes) as CompanyProfileData
     } catch {
@@ -98,25 +98,33 @@ export async function PUT(
     company_name?: string
     headcount_current?: number
     headcount_projected?: number
-    hq_location?: string
-    additional_locations?: string[]
+    hq_city?: string
+    hq_state?: string
+    hq_country?: string
+    is_multi_state?: boolean
+    multi_state_count?: number
+    has_international?: boolean
+    international_employment_types?: string[]
     workforce_salaried_pct?: number
     workforce_fulltime_pct?: number
     ownership_structure?: string
     industry?: string
-    growth_notes?: string
   }
 
   const profileData: CompanyProfileData = {
-    __v: 1,
+    __v: 2,
     headcount_projected: body.headcount_projected,
-    hq_location: body.hq_location,
-    additional_locations: body.additional_locations,
+    hq_city: body.hq_city,
+    hq_state: body.hq_state,
+    hq_country: body.hq_country,
+    is_multi_state: body.is_multi_state,
+    multi_state_count: body.multi_state_count,
+    has_international: body.has_international,
+    international_employment_types: body.international_employment_types,
     workforce_salaried_pct: body.workforce_salaried_pct,
     workforce_fulltime_pct: body.workforce_fulltime_pct,
     ownership_structure: body.ownership_structure,
     industry: body.industry,
-    growth_notes: body.growth_notes,
   }
 
   // Clean undefined values
