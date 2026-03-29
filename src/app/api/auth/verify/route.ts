@@ -56,7 +56,9 @@ export async function GET(request: NextRequest) {
     )
 
     // Build redirect response and set httpOnly session cookie
-    const response = NextResponse.redirect(`${appUrl}/dashboard`)
+    // Client-role users land on /workspace; everyone else on /dashboard
+    const landingPath = user.role === 'client' ? '/workspace' : '/dashboard'
+    const response = NextResponse.redirect(`${appUrl}${landingPath}`)
     response.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

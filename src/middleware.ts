@@ -5,6 +5,9 @@ import type { UserRole } from '@/types'
 // Routes that should redirect to dashboard if already authenticated
 const AUTH_ROUTES = ['/login', '/verify']
 
+// API routes that are always public — never require a session
+const PUBLIC_API_PREFIXES = ['/api/auth/']
+
 // Role-based route access rules
 const ROUTE_ROLE_RULES: Array<{
   prefix: string
@@ -25,6 +28,11 @@ const PROTECTED_PREFIXES = ['/dashboard', '/projects', '/settings', '/workspace'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Public API routes bypass all middleware checks
+  if (PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return NextResponse.next()
+  }
 
   const isProtectedRoute = PROTECTED_PREFIXES.some((prefix) =>
     pathname.startsWith(prefix)
