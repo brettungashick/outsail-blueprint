@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Layers, Map, FileOutput, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Layers, Map, FileOutput, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -16,6 +16,7 @@ interface WorkspaceSidebarProps {
 
 const NAV_ITEMS = [
   { label: 'Overview', href: '/workspace', icon: LayoutDashboard, exact: true },
+  { label: 'Intake', href: '/workspace/intake', icon: ClipboardList, exact: false },
   { label: 'Tech Stack', href: '/workspace/tech-stack', icon: Layers, exact: false },
   { label: 'Blueprint', href: '/workspace/blueprint', icon: Map, exact: false },
   { label: 'Outputs', href: '/workspace/outputs', icon: FileOutput, exact: false },

@@ -1,8 +1,9 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
+import Link from 'next/link'
 import { db } from '@/lib/db'
-import { projects, projectMembers, blueprintSections } from '@/lib/db/schema'
+import { projects, projectMembers, blueprintSections, techStackSystems } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import type { SectionKey, SectionStatus, SectionDepth } from '@/types'
 
@@ -123,6 +124,29 @@ export default async function WorkspacePage() {
 
   const completedCount = sections.filter((s) => s.status === 'complete').length
 
+  // Determine intake completion state
+  const hasCompanyProfile = project?.scope_notes?.startsWith('{"__v":1') ?? false
+  let hasTechStack = false
+  if (project) {
+    try {
+      const sys = await db
+        .select({ id: techStackSystems.id })
+        .from(techStackSystems)
+        .where(eq(techStackSystems.project_id, project.id))
+        .get()
+      hasTechStack = sys != null
+    } catch {
+      // Non-fatal
+    }
+  }
+  const intakeComplete = hasCompanyProfile && hasTechStack
+
+  // Don't show raw JSON in the scope notes section
+  const displayScopeNotes =
+    project?.scope_notes && !project.scope_notes.startsWith('{"__v":1')
+      ? project.scope_notes
+      : null
+
   return (
     <div className="space-y-8">
       {/* Welcome header */}
@@ -147,6 +171,41 @@ export default async function WorkspacePage() {
 
       {project && (
         <>
+          {/* Intake CTA */}
+          {!intakeComplete && (
+            <div className="rounded-card border-2 border-outsail-teal bg-outsail-teal-light p-6 flex items-center justify-between gap-6">
+              <div>
+                <h2 className="text-header-sm text-outsail-navy">Get Started</h2>
+                <p className="text-body text-outsail-slate mt-1">
+                  Complete your intake to begin building your Blueprint. It only takes a few minutes.
+                </p>
+              </div>
+              <Link
+                href="/workspace/intake"
+                className="flex-shrink-0 inline-flex items-center gap-2 h-10 px-5 rounded-md text-sm font-semibold text-white bg-outsail-teal hover:bg-outsail-teal-dark transition-colors"
+              >
+                Start Intake →
+              </Link>
+            </div>
+          )}
+
+          {intakeComplete && (
+            <div className="rounded-card border border-outsail-gray-200 bg-white p-6 flex items-center justify-between gap-6">
+              <div>
+                <h2 className="text-header-sm text-outsail-navy">Intake Complete</h2>
+                <p className="text-body text-outsail-gray-600 mt-1">
+                  Your company profile and tech stack are saved. Ready for the Blueprint Assistant.
+                </p>
+              </div>
+              <Link
+                href="/workspace/chat"
+                className="flex-shrink-0 inline-flex items-center gap-2 h-10 px-5 rounded-md text-sm font-semibold text-white bg-outsail-navy hover:bg-outsail-navy/90 transition-colors"
+              >
+                Blueprint Assistant →
+              </Link>
+            </div>
+          )}
+
           {/* Project summary cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="outsail-card">
@@ -206,10 +265,10 @@ export default async function WorkspacePage() {
                   </p>
                 </div>
               )}
-              {project.scope_notes && (
+              {displayScopeNotes && (
                 <div className="col-span-2">
                   <p className="text-label text-outsail-gray-600">Scope Notes</p>
-                  <p className="text-body text-outsail-slate whitespace-pre-line">{project.scope_notes}</p>
+                  <p className="text-body text-outsail-slate whitespace-pre-line">{displayScopeNotes}</p>
                 </div>
               )}
             </div>

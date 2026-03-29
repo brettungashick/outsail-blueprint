@@ -10,10 +10,18 @@ const ALWAYS_PUBLIC_PREFIXES = ['/_next/', '/api/auth/', '/fonts/']
 const ALWAYS_PUBLIC_EXACT = new Set(['/login', '/verify', '/favicon.ico'])
 
 // ─── Role-based access rules ──────────────────────────────────────────────────
+// Rules are matched with .find() — first match wins. More-specific prefixes MUST
+// come before less-specific ones.
 const ROLE_RULES: Array<{ prefix: string; allowedRoles: UserRole[] }> = [
   { prefix: '/dashboard', allowedRoles: ['admin', 'advisor'] },
   { prefix: '/workspace', allowedRoles: ['admin', 'client'] },
   { prefix: '/settings', allowedRoles: ['admin'] },
+  // /api/projects/<id>/... — clients can read/write data for projects they belong to.
+  // The individual route handlers enforce membership via project_members check.
+  // This rule MUST appear before '/api/projects' (no trailing slash) so the
+  // more-specific match wins for sub-resource requests.
+  { prefix: '/api/projects/', allowedRoles: ['admin', 'advisor', 'client'] },
+  // /api/projects (root) — list all projects or create a new one — advisors/admins only.
   { prefix: '/api/projects', allowedRoles: ['admin', 'advisor'] },
 ]
 
