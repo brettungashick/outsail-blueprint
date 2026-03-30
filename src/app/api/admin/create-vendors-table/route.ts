@@ -3,7 +3,7 @@ import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)
   if (!sessionCookie?.value) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -84,3 +84,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create table' }, { status: 500 })
   }
 }
+
+// Support both GET (browser-friendly) and POST
+export { handler as GET, handler as POST }

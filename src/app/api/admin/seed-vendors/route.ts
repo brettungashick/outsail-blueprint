@@ -15,7 +15,7 @@ interface VendorSeedEntry {
   suggested_categories: string[]
 }
 
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)
   if (!sessionCookie?.value) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -90,3 +90,6 @@ export async function POST(request: NextRequest) {
     errors: errors.length > 0 ? errors : undefined,
   })
 }
+
+// Support both GET (browser-friendly) and POST
+export { handler as GET, handler as POST }

@@ -23,10 +23,12 @@ const ROLE_RULES: Array<{ prefix: string; allowedRoles: UserRole[] }> = [
   { prefix: '/api/projects/', allowedRoles: ['admin', 'advisor', 'client'] },
   // /api/projects (root) — list all projects or create a new one — advisors/admins only.
   { prefix: '/api/projects', allowedRoles: ['admin', 'advisor'] },
+  // /api/admin/* — admin-only management endpoints (table creation, seeding, etc.)
+  { prefix: '/api/admin/', allowedRoles: ['admin'] },
 ]
 
 // Prefixes that require an authenticated session
-const REQUIRES_AUTH_PREFIXES = ['/dashboard', '/workspace', '/settings', '/api/projects']
+const REQUIRES_AUTH_PREFIXES = ['/dashboard', '/workspace', '/settings', '/api/projects', '/api/admin/']
 
 // Map role → default landing page after auth
 function roleHome(role: UserRole): string {
