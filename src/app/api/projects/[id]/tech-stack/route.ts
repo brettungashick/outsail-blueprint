@@ -130,6 +130,7 @@ export async function PUT(
       integrationQuality: 'fully_integrated' | 'mostly_automated' | 'partially_automated' | 'fully_manual'
       integrationDirection: 'to_primary' | 'from_primary' | 'bidirectional'
       alsoCovers: string[]
+      alsoCoversLabels?: string[]
     }>
   }
 
@@ -174,9 +175,10 @@ export async function PUT(
 
   for (const mod of modulesToSave) {
     const avg = Math.round((mod.ratings.admin + mod.ratings.employee + mod.ratings.service) / 3)
-    const alsoCoversLabels = (mod.alsoCovers ?? [])
-      .map((covId) => body.modules?.find((m) => m.id === covId)?.label)
-      .filter((l): l is string => Boolean(l))
+    const alsoCoversLabels = mod.alsoCoversLabels ??
+      (mod.alsoCovers ?? [])
+        .map((covId) => body.modules?.find((m) => m.id === covId)?.label)
+        .filter((l): l is string => Boolean(l))
 
     const ps = await db
       .insert(techStackSystems)
@@ -196,7 +198,7 @@ export async function PUT(
           canvasX: mod.canvasX,
           canvasY: mod.canvasY,
           integrationDirection: mod.integrationDirection,
-          alsoCovers: mod.alsoCovers,
+          alsoCoversLabels: alsoCoversLabels,
           vendorNotes: mod.vendorNotes,
           coveredByPrimary: mod.coveredByPrimary,
         }),
