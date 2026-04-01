@@ -32,11 +32,14 @@ const STATUS_DOT: Record<SectionStatus, string> = {
 }
 
 const PROJECT_STATUS_LABELS: Record<string, string> = {
-  setup: 'Setup',
   intake: 'Intake',
-  chat: 'Discovery',
-  review: 'Review',
-  complete: 'Complete',
+  discovery_complete: 'Discovery Done',
+  summary_approved: 'Summary Approved',
+  deep_discovery: 'Deep Discovery',
+  blueprint_generation: 'Blueprint',
+  client_review: 'Client Review',
+  approved: 'Approved',
+  outputs: 'Outputs',
 }
 
 const TIER_LABELS: Record<string, string> = {

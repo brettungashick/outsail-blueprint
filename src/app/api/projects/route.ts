@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         tier: resolvedTier,
         scope_notes: scopeNotes ?? null,
         created_by: session.userId,
-        status: 'setup',
+        status: 'intake',
       })
       .returning()
       .get()

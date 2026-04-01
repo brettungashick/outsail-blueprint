@@ -53,14 +53,33 @@ export const projects = sqliteTable('projects', {
   headcount: integer('headcount'),
   tier: text('tier', { enum: ['essentials', 'growth', 'enterprise'] }),
   status: text('status', {
-    enum: ['setup', 'intake', 'chat', 'review', 'complete'],
+    enum: [
+      'intake',
+      'discovery_complete',
+      'summary_approved',
+      'deep_discovery',
+      'blueprint_generation',
+      'client_review',
+      'approved',
+      'outputs',
+    ],
   })
     .notNull()
-    .default('setup'),
+    .default('intake'),
   scope_notes: text('scope_notes'),
   readiness_level: text('readiness_level', {
     enum: ['draft_ready', 'demo_ready', 'implementation_ready'],
   }),
+  // Phase B — discovery summary & review
+  discovery_summary: text('discovery_summary'),      // JSON: "What We Heard"
+  recommended_sections: text('recommended_sections'), // JSON: AI-suggested Blueprint sections
+  client_edits: text('client_edits'),                // JSON: client corrections + flags
+  summary_approved_at: integer('summary_approved_at', { mode: 'timestamp' }),
+  // Phase D — Blueprint generation tracking
+  generated_at: integer('generated_at', { mode: 'timestamp' }),
+  generation_count: integer('generation_count').default(0),
+  generation_metadata: text('generation_metadata'), // JSON: which sessions/transcripts included
+  self_service_enabled: integer('self_service_enabled', { mode: 'boolean' }).default(false),
   created_by: text('created_by').references(() => users.id),
   created_at: integer('created_at', { mode: 'timestamp' }).$defaultFn(
     () => new Date()
@@ -94,25 +113,63 @@ export const projectMembers = sqliteTable('project_members', {
 })
 
 // ============================================================
-// sessions (discovery sessions / transcripts)
+// sessions (discovery chat sessions + transcript uploads)
+// session_type:
+//   'discovery'      → Phase A quick chat (~5–10 min, light scope)
+//   'deep_discovery' → Phase C self-service or stakeholder session (thorough)
+//   'transcript'     → Phase C advisor-uploaded transcript (batch processed)
 // ============================================================
 export const discoverySessions = sqliteTable('sessions', {
   id: text('id')
     .primaryKey()
     .$defaultFn(() => createId()),
-  user_id: text('user_id')
+  project_id: text('project_id')
     .notNull()
-    .references(() => users.id),
-  project_id: text('project_id').references(() => projects.id),
-  session_type: text('session_type', { enum: ['chat', 'transcript'] }).notNull(),
+    .references(() => projects.id),
+  session_type: text('session_type', {
+    enum: ['discovery', 'deep_discovery', 'transcript'],
+  }).notNull(),
+  status: text('status', { enum: ['active', 'completed'] })
+    .notNull()
+    .default('active'),
+  // Participant info (for stakeholder sessions)
+  participant_name: text('participant_name'),
+  participant_role: text('participant_role'),
+  participant_email: text('participant_email'),
+  // Advisor-defined focus areas (JSON string[])
+  focus_areas: text('focus_areas'),
+  // Transcript-only fields
   transcript_raw: text('transcript_raw'),
   processing_status: text('processing_status', {
     enum: ['pending', 'processing', 'complete', 'failed'],
   }),
+  created_by: text('created_by').references(() => users.id),
   created_at: integer('created_at', { mode: 'timestamp' }).$defaultFn(
     () => new Date()
   ),
   updated_at: integer('updated_at', { mode: 'timestamp' }).$defaultFn(
+    () => new Date()
+  ),
+})
+
+// ============================================================
+// chat_messages (messages within a discovery or deep_discovery session)
+// ============================================================
+export const chatMessages = sqliteTable('chat_messages', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  session_id: text('session_id')
+    .notNull()
+    .references(() => discoverySessions.id),
+  project_id: text('project_id')
+    .notNull()
+    .references(() => projects.id),
+  role: text('role', { enum: ['assistant', 'user'] }).notNull(),
+  content: text('content').notNull(),
+  // Structured data extracted by AI from this message (JSON)
+  extractions: text('extractions'),
+  created_at: integer('created_at', { mode: 'timestamp' }).$defaultFn(
     () => new Date()
   ),
 })
@@ -373,31 +430,6 @@ export const openQuestions = sqliteTable('open_questions', {
   ),
 })
 
-// ============================================================
-// chat_messages
-// ============================================================
-export const chatMessages = sqliteTable('chat_messages', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  project_id: text('project_id')
-    .notNull()
-    .references(() => projects.id),
-  role: text('role', {
-    enum: ['assistant', 'client', 'advisor', 'system'],
-  }).notNull(),
-  content: text('content').notNull(),
-  extractions: text('extractions'), // JSON stored as text
-  extraction_status: text('extraction_status', {
-    enum: ['none', 'pending', 'committed', 'rejected'],
-  })
-    .notNull()
-    .default('none'),
-  created_by: text('created_by').references(() => users.id),
-  created_at: integer('created_at', { mode: 'timestamp' }).$defaultFn(
-    () => new Date()
-  ),
-})
 
 // ============================================================
 // chat_contexts

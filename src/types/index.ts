@@ -6,13 +6,23 @@ export type UserRole = 'admin' | 'advisor' | 'client' | 'vendor'
 
 export type ProjectTier = 'essentials' | 'growth' | 'enterprise'
 
-export type ProjectStatus = 'setup' | 'intake' | 'chat' | 'review' | 'complete'
+export type ProjectStatus =
+  | 'intake'
+  | 'discovery_complete'
+  | 'summary_approved'
+  | 'deep_discovery'
+  | 'blueprint_generation'
+  | 'client_review'
+  | 'approved'
+  | 'outputs'
 
 export type ReadinessLevel = 'draft_ready' | 'demo_ready' | 'implementation_ready'
 
 export type MemberRole = 'advisor' | 'client' | 'viewer'
 
-export type SessionType = 'chat' | 'transcript'
+export type SessionType = 'discovery' | 'deep_discovery' | 'transcript'
+
+export type SessionStatus = 'active' | 'completed'
 
 export type ProcessingStatus = 'pending' | 'processing' | 'complete' | 'failed'
 
@@ -52,13 +62,13 @@ export type SectionStatus =
   | 'client_approved'
   | 'complete'
 
-export type RequirementSource = 'chat' | 'transcript' | 'intake' | 'advisor'
+export type RequirementSource = 'discovery' | 'deep_discovery' | 'transcript' | 'intake' | 'advisor'
 
 export type Criticality = 'must_have' | 'should_have' | 'could_have' | 'wont_have'
 
 export type ImplementationComplexity = 'low' | 'medium' | 'high'
 
-export type ProcessSource = 'chat' | 'transcript' | 'advisor'
+export type ProcessSource = 'discovery' | 'deep_discovery' | 'transcript' | 'advisor'
 
 export type QuestionStatus =
   | 'open'
@@ -67,10 +77,6 @@ export type QuestionStatus =
   | 'conflicting'
   | 'resolved'
   | 'deferred'
-
-export type ChatRole = 'assistant' | 'client' | 'advisor' | 'system'
-
-export type ExtractionStatus = 'none' | 'pending' | 'committed' | 'rejected'
 
 export type OutputType =
   | 'project_summary'
@@ -117,6 +123,16 @@ export interface Project {
   status: ProjectStatus
   scope_notes: string | null
   readiness_level: ReadinessLevel | null
+  // Phase B
+  discovery_summary: string | null
+  recommended_sections: string | null
+  client_edits: string | null
+  summary_approved_at: Date | null
+  // Phase D
+  generated_at: Date | null
+  generation_count: number
+  generation_metadata: string | null
+  self_service_enabled: boolean
   created_by: string | null
   created_at: Date | null
   updated_at: Date | null
@@ -134,13 +150,28 @@ export interface ProjectMember {
 
 export interface Session {
   id: string
-  user_id: string
-  project_id: string | null
+  project_id: string
   session_type: SessionType
+  status: SessionStatus
+  participant_name: string | null
+  participant_role: string | null
+  participant_email: string | null
+  focus_areas: string | null  // JSON string[]
   transcript_raw: string | null
   processing_status: ProcessingStatus | null
+  created_by: string | null
   created_at: Date | null
   updated_at: Date | null
+}
+
+export interface ChatMessage {
+  id: string
+  session_id: string
+  project_id: string
+  role: 'assistant' | 'user'
+  content: string
+  extractions: string | null  // JSON
+  created_at: Date | null
 }
 
 export interface TechStackSystem {
@@ -261,26 +292,6 @@ export interface OpenQuestion {
   updated_at: Date | null
 }
 
-export interface ChatMessage {
-  id: string
-  project_id: string
-  role: ChatRole
-  content: string
-  extractions: Record<string, unknown> | null
-  extraction_status: ExtractionStatus
-  created_by: string | null
-  created_at: Date | null
-}
-
-export interface ChatContext {
-  id: string
-  project_id: string
-  advisor_notes: string | null
-  sections_covered: string[] | null
-  current_topic: string | null
-  suggested_next_topics: string[] | null
-  updated_at: Date | null
-}
 
 export interface GeneratedOutput {
   id: string

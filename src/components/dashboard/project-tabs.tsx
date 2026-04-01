@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Clock, Users } from 'lucide-react'
 import type { SectionKey, SectionDepth, SectionStatus, ProjectTier, ProjectStatus } from '@/types'
@@ -51,11 +50,14 @@ const TABS = [
 type TabKey = (typeof TABS)[number]['key']
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
-  setup: 'Setup',
   intake: 'Intake',
-  chat: 'Discovery',
-  review: 'Review',
-  complete: 'Complete',
+  discovery_complete: 'Discovery Done',
+  summary_approved: 'Summary Approved',
+  deep_discovery: 'Deep Discovery',
+  blueprint_generation: 'Blueprint',
+  client_review: 'Client Review',
+  approved: 'Approved',
+  outputs: 'Outputs',
 }
 
 const TIER_LABELS: Record<ProjectTier, string> = {
@@ -64,7 +66,16 @@ const TIER_LABELS: Record<ProjectTier, string> = {
   enterprise: 'Enterprise',
 }
 
-const STATUS_ORDER: ProjectStatus[] = ['setup', 'intake', 'chat', 'review', 'complete']
+const STATUS_ORDER: ProjectStatus[] = [
+  'intake',
+  'discovery_complete',
+  'summary_approved',
+  'deep_discovery',
+  'blueprint_generation',
+  'client_review',
+  'approved',
+  'outputs',
+]
 
 const SECTION_STATUS_LABELS: Record<SectionStatus, string> = {
   not_started: 'Not Started',
@@ -233,7 +244,7 @@ function OverviewTab({ project, blueprintSections }: ProjectTabsProps) {
           <div className="mb-4">
             <p className="text-label text-outsail-gray-600 mb-1.5">Readiness Level</p>
             {project.readiness_level ? (
-              <Badge variant="complete">{readinessLabels[project.readiness_level] ?? project.readiness_level}</Badge>
+              <Badge variant="approved">{readinessLabels[project.readiness_level] ?? project.readiness_level}</Badge>
             ) : (
               <span className="text-xs text-outsail-gray-600 italic">Not yet assessed</span>
             )}
