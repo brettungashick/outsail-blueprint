@@ -34,7 +34,7 @@ export function TechStackBuilderWrapper({
       projectId={projectId}
       initialPrimaryVendor={primary?.vendor ?? ''}
       initialCoveredModules={primary?.modules_used ?? []}
-      onComplete={() => router.push('/workspace')}
+      onComplete={() => router.push('/workspace/intake/discovery')}
     />
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { VendorCombobox } from './vendor-combobox'
 import { StarRating } from './star-rating'
 import { HCM_CAPABILITIES, VENDOR_DEFAULT_MODULES } from '@/lib/tech-stack/vendors'
@@ -28,8 +28,8 @@ const ORBIT_R = 228
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function satPos(index: number): { x: number; y: number } {
-  const angle = (2 * Math.PI * index) / STANDARD_MODULES.length - Math.PI / 2
+function satPos(index: number, total = STANDARD_MODULES.length): { x: number; y: number } {
+  const angle = (2 * Math.PI * index) / total - Math.PI / 2
   return {
     x: CX + ORBIT_R * Math.cos(angle),
     y: CY + ORBIT_R * Math.sin(angle),
@@ -145,6 +145,17 @@ export function TechStackCanvas({
   const [draftDirection, setDraftDirection] = useState<IntegrationDirection>(DEFAULT_DIRECTION)
   const [moduleSaving, setModuleSaving] = useState(false)
   const [moduleError, setModuleError] = useState<string | null>(null)
+
+  // ── Add custom module state
+  const [customModules, setCustomModules] = useState<string[]>([])
+  const [showAddModule, setShowAddModule] = useState(false)
+  const [newModuleName, setNewModuleName] = useState('')
+
+  // SVG ref for PNG export
+  const svgRef = useRef<SVGSVGElement>(null)
+
+  // All modules = standard + custom
+  const allModules = [...STANDARD_MODULES, ...customModules]
 
   // ── Build PUT payload ─────────────────────────────────────────────────────
 
@@ -270,6 +281,43 @@ export function TechStackCanvas({
     }
   }
 
+  // ── Add custom module ─────────────────────────────────────────────────────
+
+  function handleAddModule() {
+    const name = newModuleName.trim()
+    if (!name || allModules.includes(name)) return
+    setCustomModules((prev) => [...prev, name])
+    setNewModuleName('')
+    setShowAddModule(false)
+  }
+
+  // ── Download PNG ──────────────────────────────────────────────────────────
+
+  function downloadPng() {
+    const svgEl = svgRef.current
+    if (!svgEl) return
+    const svgStr = new XMLSerializer().serializeToString(svgEl)
+    const blob = new Blob([svgStr], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+    const img = new window.Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = VB_W * 2
+      canvas.height = (VB_H + 56) * 2
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      ctx.fillStyle = '#F8F7F4'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      const a = document.createElement('a')
+      a.href = canvas.toDataURL('image/png')
+      a.download = 'tech-stack.png'
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+    img.src = url
+  }
+
   // ── Primary vendor handlers ───────────────────────────────────────────────
 
   function openPrimaryModal() {
@@ -315,6 +363,7 @@ export function TechStackCanvas({
       {/* ── Canvas ── */}
       <div className="w-full rounded-xl border border-outsail-gray-200 bg-[#F8F7F4] overflow-auto">
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${VB_W} ${VB_H + 56}`}
           className="w-full"
           style={{ minWidth: 600, display: 'block' }}
@@ -343,8 +392,8 @@ export function TechStackCanvas({
           )}
 
           {/* Spoke lines — quality-colored with arrowheads for point solutions */}
-          {STANDARD_MODULES.map((label, i) => {
-            const pos = satPos(i)
+          {allModules.map((label, i) => {
+            const pos = satPos(i, allModules.length)
             const covered = coveredModules.includes(label)
             const psData = pointSolutions[label]
             if (!covered && !psData) return null   // gap modules: no line
@@ -383,8 +432,8 @@ export function TechStackCanvas({
           })}
 
           {/* Satellite circles */}
-          {STANDARD_MODULES.map((label, i) => {
-            const pos = satPos(i)
+          {allModules.map((label, i) => {
+            const pos = satPos(i, allModules.length)
             const covered = coveredModules.includes(label)
             const psData = pointSolutions[label]
             const isGap = primaryVendor && !covered && !psData
@@ -485,14 +534,59 @@ export function TechStackCanvas({
         </svg>
       </div>
 
-      {/* Continue */}
-      {primaryVendor && onComplete && (
-        <div className="flex justify-end">
-          <button type="button" onClick={onComplete} className="px-6 py-2.5 bg-outsail-teal text-white rounded-card text-label font-medium hover:bg-outsail-teal/90 transition-colors">
-            Continue to next step →
+      {/* ── Action bar: Add Module / Download PNG / Continue ── */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {showAddModule ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newModuleName}
+                onChange={(e) => setNewModuleName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddModule()
+                  if (e.key === 'Escape') { setShowAddModule(false); setNewModuleName('') }
+                }}
+                placeholder="Module name…"
+                autoFocus
+                className="px-3 py-1.5 text-sm border border-outsail-gray-200 rounded-card focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal w-44"
+              />
+              <button type="button" onClick={handleAddModule} className="px-3 py-1.5 bg-outsail-teal text-white text-sm rounded-card hover:bg-outsail-teal/90">Add</button>
+              <button type="button" onClick={() => { setShowAddModule(false); setNewModuleName('') }} className="px-3 py-1.5 border border-outsail-gray-200 text-sm text-outsail-gray-600 rounded-card">Cancel</button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAddModule(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-outsail-gray-600 border border-outsail-gray-200 rounded-card hover:border-outsail-navy hover:text-outsail-navy transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Module
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={downloadPng}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-outsail-gray-600 border border-outsail-gray-200 rounded-card hover:border-outsail-navy hover:text-outsail-navy transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download PNG
           </button>
         </div>
-      )}
+        {primaryVendor && onComplete && (
+          <button
+            type="button"
+            onClick={onComplete}
+            className="px-6 py-2.5 bg-outsail-teal text-white rounded-card text-label font-medium hover:bg-outsail-teal/90 transition-colors"
+          >
+            Continue →
+          </button>
+        )}
+      </div>
 
       {/* ── Module modal ── */}
       <Dialog open={activeModule !== null} onOpenChange={(open) => { if (!open && !moduleSaving) setActiveModule(null) }}>
