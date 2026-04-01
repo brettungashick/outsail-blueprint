@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { VendorCombobox } from './vendor-combobox'
-import { HCM_CAPABILITIES, VENDOR_DEFAULT_MODULES } from '@/lib/tech-stack/vendors'
+import { HCM_CAPABILITIES, VENDOR_DEFAULT_MODULES, CATEGORY_TO_SYSTEM_TYPE } from '@/lib/tech-stack/vendors'
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ const STANDARD_MODULES = HCM_CAPABILITIES.filter((c) => c !== 'Custom')
 const VB_W = 900
 const VB_H = 580
 const CX = VB_W / 2
-const CY = VB_H / 2 - 10   // 280
+const CY = VB_H / 2 - 10
 const PRIMARY_R = 82
 const MODULE_R = 52
 const ORBIT_R = 228
@@ -53,6 +53,8 @@ export interface TechStackCanvasProps {
   projectId: string
   initialPrimaryVendor?: string
   initialCoveredModules?: string[]
+  /** Module-label → vendor-name for pre-loaded point solutions */
+  initialPointSolutions?: Record<string, string>
   onComplete?: () => void
 }
 
@@ -89,17 +91,31 @@ function Toggle({
   )
 }
 
+// ─── Spinner ──────────────────────────────────────────────────────────────────
+
+function Spinner() {
+  return (
+    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function TechStackCanvas({
   projectId,
   initialPrimaryVendor = '',
   initialCoveredModules = [],
+  initialPointSolutions = {},
   onComplete,
 }: TechStackCanvasProps) {
-  // ── Primary vendor state
+  // ── Persistent state
   const [primaryVendor, setPrimaryVendor] = useState(initialPrimaryVendor)
   const [coveredModules, setCoveredModules] = useState<string[]>(initialCoveredModules)
+  // module-label → vendor name for saved point solutions
+  const [pointSolutions, setPointSolutions] = useState<Record<string, string>>(initialPointSolutions)
 
   // ── Primary vendor modal draft state
   const [showPrimaryModal, setShowPrimaryModal] = useState(false)
@@ -110,14 +126,116 @@ export function TechStackCanvas({
 
   // ── Module modal state
   const [activeModule, setActiveModule] = useState<string | null>(null)
-  // Whether the active module is toggled as "handled by primary vendor"
-  const [moduleHandledByPrimary, setModuleHandledByPrimary] = useState(false)
+  const [draftHandledByPrimary, setDraftHandledByPrimary] = useState(false)
+  const [draftPointVendor, setDraftPointVendor] = useState('')
+  const [moduleSaving, setModuleSaving] = useState(false)
+  const [moduleError, setModuleError] = useState<string | null>(null)
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /**
+   * Build a modules array from current pointSolutions state, optionally
+   * overriding one entry (used when saving a single module).
+   */
+  function buildModulesPayload(
+    overrideLabel?: string,
+    overrideVendor?: string,
+    removeLabel?: string
+  ) {
+    const merged: Record<string, string> = { ...pointSolutions }
+    if (overrideLabel && overrideVendor) merged[overrideLabel] = overrideVendor
+    if (removeLabel) delete merged[removeLabel]
+
+    return Object.entries(merged)
+      .filter(([, v]) => v.trim())
+      .map(([label, vendor]) => ({
+        id: label.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+        label,
+        isCustom: false,
+        canvasX: 0,
+        canvasY: 0,
+        vendor: vendor.trim(),
+        vendorNotes: '',
+        coveredByPrimary: false,
+        ratings: { admin: 3, employee: 3, service: 3 },
+        integrationQuality: 'mostly_automated' as const,
+        integrationDirection: 'bidirectional' as const,
+        alsoCoversLabels: [],
+      }))
+  }
+
+  async function putTechStack(
+    pv: string,
+    cm: string[],
+    modulesPayload: ReturnType<typeof buildModulesPayload>
+  ) {
+    const res = await fetch(`/api/projects/${projectId}/tech-stack`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        primaryVendor: pv,
+        primaryModules: cm,
+        primaryRatings: { admin: 3, employee: 3, service: 3 },
+        modules: modulesPayload,
+      }),
+    })
+    if (!res.ok) throw new Error('Failed to save. Please try again.')
+  }
 
   // ── Open module modal ─────────────────────────────────────────────────────
 
   function openModuleModal(label: string) {
-    setModuleHandledByPrimary(coveredModules.includes(label))
+    setDraftHandledByPrimary(coveredModules.includes(label))
+    setDraftPointVendor(pointSolutions[label] ?? '')
+    setModuleError(null)
     setActiveModule(label)
+  }
+
+  // ── Save module ───────────────────────────────────────────────────────────
+
+  async function handleSaveModule() {
+    if (!activeModule) return
+    setModuleSaving(true)
+    setModuleError(null)
+
+    try {
+      let newCoveredModules = coveredModules
+      let newPointSolutions = { ...pointSolutions }
+
+      if (draftHandledByPrimary) {
+        // Mark as covered by primary; remove any point solution
+        newCoveredModules = coveredModules.includes(activeModule)
+          ? coveredModules
+          : [...coveredModules, activeModule]
+        delete newPointSolutions[activeModule]
+        await putTechStack(primaryVendor, newCoveredModules, buildModulesPayload(undefined, undefined, activeModule))
+      } else {
+        // Remove from primary coverage; save point solution vendor if set
+        newCoveredModules = coveredModules.filter((m) => m !== activeModule)
+        if (draftPointVendor.trim()) {
+          newPointSolutions[activeModule] = draftPointVendor.trim()
+        } else {
+          delete newPointSolutions[activeModule]
+        }
+        await putTechStack(
+          primaryVendor,
+          newCoveredModules,
+          buildModulesPayload(
+            draftPointVendor.trim() ? activeModule : undefined,
+            draftPointVendor.trim() || undefined,
+            draftPointVendor.trim() ? undefined : activeModule
+          )
+        )
+      }
+
+      setCoveredModules(newCoveredModules)
+      setPointSolutions(newPointSolutions)
+      setActiveModule(null)
+    } catch (e) {
+      setModuleError(e instanceof Error ? e.message : 'Something went wrong')
+    } finally {
+      setModuleSaving(false)
+    }
   }
 
   // ── Primary modal handlers ────────────────────────────────────────────────
@@ -147,16 +265,7 @@ export function TechStackCanvas({
     setSaving(true)
     setSaveError(null)
     try {
-      const res = await fetch(`/api/projects/${projectId}/tech-stack`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          primaryVendor: draftVendor.trim(),
-          primaryModules: draftModules,
-          primaryRatings: { admin: 3, employee: 3, service: 3 },
-        }),
-      })
-      if (!res.ok) throw new Error('Failed to save. Please try again.')
+      await putTechStack(draftVendor.trim(), draftModules, buildModulesPayload())
       setPrimaryVendor(draftVendor.trim())
       setCoveredModules(draftModules)
       setShowPrimaryModal(false)
@@ -167,7 +276,12 @@ export function TechStackCanvas({
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // ─── Derived ──────────────────────────────────────────────────────────────
+
+  // Determine the system_type label for the active module (for VendorCombobox category hint)
+  const activeModuleCategory = activeModule ?? ''
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-4">
@@ -182,13 +296,7 @@ export function TechStackCanvas({
           {/* Dot grid */}
           {Array.from({ length: 10 }, (_, row) =>
             Array.from({ length: 16 }, (_, col) => (
-              <circle
-                key={`dot-${row}-${col}`}
-                cx={col * 60 + 30}
-                cy={row * 60 + 30}
-                r={1.5}
-                fill="#E5E3DC"
-              />
+              <circle key={`dot-${row}-${col}`} cx={col * 60 + 30} cy={row * 60 + 30} r={1.5} fill="#E5E3DC" />
             ))
           )}
 
@@ -196,14 +304,16 @@ export function TechStackCanvas({
           {STANDARD_MODULES.map((label, i) => {
             const pos = satPos(i)
             const covered = coveredModules.includes(label)
+            const hasPS = Boolean(pointSolutions[label])
+            const active = covered || hasPS
             return (
               <line
                 key={`line-${i}`}
                 x1={CX} y1={CY} x2={pos.x} y2={pos.y}
-                stroke={covered ? '#1D9E75' : '#D3D1C7'}
-                strokeWidth={covered ? 2 : 1.5}
-                strokeDasharray={covered ? undefined : '6,4'}
-                opacity={covered ? 0.6 : 0.4}
+                stroke={active ? '#1D9E75' : '#D3D1C7'}
+                strokeWidth={active ? 2 : 1.5}
+                strokeDasharray={active ? undefined : '6,4'}
+                opacity={active ? 0.6 : 0.4}
               />
             )
           })}
@@ -212,8 +322,17 @@ export function TechStackCanvas({
           {STANDARD_MODULES.map((label, i) => {
             const pos = satPos(i)
             const covered = coveredModules.includes(label)
+            const psVendor = pointSolutions[label]
             const lines = splitLabel(label)
             const lineSpacing = 14
+
+            // Visual state
+            let fill = 'white'
+            let stroke = '#D3D1C7'
+            let sw = 1.5
+            let dash: string | undefined = '7,5'
+            if (covered) { fill = '#E1F5EE'; stroke = '#1D9E75'; sw = 2.5; dash = undefined }
+            else if (psVendor) { fill = '#EEF2FF'; stroke = '#4338CA'; sw = 2; dash = undefined }
 
             return (
               <g
@@ -223,73 +342,50 @@ export function TechStackCanvas({
                 role="button"
                 aria-label={`Configure ${label}`}
               >
-                {/* Expanded hit-area */}
                 <circle cx={pos.x} cy={pos.y} r={MODULE_R + 6} fill="transparent" />
-
-                <circle
-                  cx={pos.x} cy={pos.y} r={MODULE_R}
-                  fill={covered ? '#E1F5EE' : 'white'}
-                  stroke={covered ? '#1D9E75' : '#D3D1C7'}
-                  strokeWidth={covered ? 2.5 : 1.5}
-                  strokeDasharray={covered ? undefined : '7,5'}
-                />
+                <circle cx={pos.x} cy={pos.y} r={MODULE_R} fill={fill} stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
 
                 {/* Checkmark badge */}
                 {covered && (
                   <>
                     <circle cx={pos.x + MODULE_R * 0.65} cy={pos.y - MODULE_R * 0.65} r={10} fill="#1D9E75" />
-                    <text
-                      x={pos.x + MODULE_R * 0.65} y={pos.y - MODULE_R * 0.65 + 4}
-                      textAnchor="middle" fontSize={11} fontFamily="Inter, sans-serif"
-                      fill="white" fontWeight={700}
-                    >✓</text>
+                    <text x={pos.x + MODULE_R * 0.65} y={pos.y - MODULE_R * 0.65 + 4} textAnchor="middle" fontSize={11} fontFamily="Inter, sans-serif" fill="white" fontWeight={700}>✓</text>
                   </>
                 )}
 
-                {/* Label */}
-                {lines.map((line, li) => {
-                  const totalH = (lines.length - 1) * lineSpacing
-                  const baseY = pos.y - totalH / 2 + li * lineSpacing + 4
-                  return (
-                    <text
-                      key={li}
-                      x={pos.x} y={baseY}
-                      textAnchor="middle" fontSize={10}
-                      fontFamily="Inter, sans-serif"
-                      fontWeight={covered ? 600 : 500}
-                      fill={covered ? '#0F6E56' : '#6B6B65'}
-                    >
-                      {line}
+                {/* Point solution: show vendor name above module label */}
+                {psVendor && !covered ? (
+                  <>
+                    <text x={pos.x} y={pos.y - 8} textAnchor="middle" fontSize={9} fontFamily="Inter, sans-serif" fontWeight={700} fill="#4338CA">
+                      {psVendor.length > 13 ? psVendor.slice(0, 12) + '…' : psVendor}
                     </text>
-                  )
-                })}
+                    {lines.map((line, li) => (
+                      <text key={li} x={pos.x} y={pos.y + 7 + li * 11} textAnchor="middle" fontSize={8} fontFamily="Inter, sans-serif" fill="#9CA3AF">{line}</text>
+                    ))}
+                  </>
+                ) : (
+                  lines.map((line, li) => {
+                    const totalH = (lines.length - 1) * lineSpacing
+                    const baseY = pos.y - totalH / 2 + li * lineSpacing + 4
+                    return (
+                      <text key={li} x={pos.x} y={baseY} textAnchor="middle" fontSize={10} fontFamily="Inter, sans-serif" fontWeight={covered ? 600 : 500} fill={covered ? '#0F6E56' : '#6B6B65'}>{line}</text>
+                    )
+                  })
+                )}
               </g>
             )
           })}
 
           {/* Primary circle */}
-          <g
-            onClick={openPrimaryModal}
-            style={{ cursor: 'pointer' }}
-            role="button"
-            aria-label={primaryVendor ? `Edit primary vendor: ${primaryVendor}` : 'Set primary vendor'}
-          >
+          <g onClick={openPrimaryModal} style={{ cursor: 'pointer' }} role="button" aria-label="Edit primary vendor">
             <circle cx={CX} cy={CY} r={PRIMARY_R + 6} fill="transparent" />
-            <circle
-              cx={CX} cy={CY} r={PRIMARY_R}
-              fill="white"
-              stroke={primaryVendor ? '#1B3A5C' : '#D3D1C7'}
-              strokeWidth={primaryVendor ? 3 : 2}
-              strokeDasharray={primaryVendor ? undefined : '12,7'}
-            />
+            <circle cx={CX} cy={CY} r={PRIMARY_R} fill="white" stroke={primaryVendor ? '#1B3A5C' : '#D3D1C7'} strokeWidth={primaryVendor ? 3 : 2} strokeDasharray={primaryVendor ? undefined : '12,7'} />
             {primaryVendor ? (
               <>
                 <text x={CX} y={CY - 12} textAnchor="middle" fontSize={15} fontFamily="Inter, sans-serif" fontWeight={700} fill="#1B3A5C">
                   {primaryVendor.length > 17 ? primaryVendor.slice(0, 16) + '…' : primaryVendor}
                 </text>
-                <text x={CX} y={CY + 7} textAnchor="middle" fontSize={9} fontFamily="Inter, sans-serif" fill="#9CA3AF" letterSpacing={1}>
-                  PRIMARY VENDOR
-                </text>
+                <text x={CX} y={CY + 7} textAnchor="middle" fontSize={9} fontFamily="Inter, sans-serif" fill="#9CA3AF" letterSpacing={1}>PRIMARY VENDOR</text>
                 <text x={CX} y={CY + 25} textAnchor="middle" fontSize={10} fontFamily="Inter, sans-serif" fill="#1D9E75" fontWeight={500}>
                   {coveredModules.length} module{coveredModules.length !== 1 ? 's' : ''} covered
                 </text>
@@ -308,18 +404,14 @@ export function TechStackCanvas({
       {/* Continue */}
       {primaryVendor && onComplete && (
         <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onComplete}
-            className="px-6 py-2.5 bg-outsail-teal text-white rounded-card text-label font-medium hover:bg-outsail-teal/90 transition-colors"
-          >
+          <button type="button" onClick={onComplete} className="px-6 py-2.5 bg-outsail-teal text-white rounded-card text-label font-medium hover:bg-outsail-teal/90 transition-colors">
             Continue to next step →
           </button>
         </div>
       )}
 
-      {/* ── Module modal (Commit 1: toggle + close only) ── */}
-      <Dialog open={activeModule !== null} onOpenChange={(open) => { if (!open) setActiveModule(null) }}>
+      {/* ── Module modal ── */}
+      <Dialog open={activeModule !== null} onOpenChange={(open) => { if (!open && !moduleSaving) setActiveModule(null) }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <div>
@@ -327,11 +419,7 @@ export function TechStackCanvas({
               <DialogDescription>Configure how this module is covered in your tech stack.</DialogDescription>
             </div>
             <DialogClose asChild>
-              <button
-                type="button"
-                className="rounded p-1 text-outsail-gray-600 hover:text-outsail-navy transition-colors"
-                aria-label="Close"
-              >
+              <button type="button" disabled={moduleSaving} className="rounded p-1 text-outsail-gray-600 hover:text-outsail-navy transition-colors" aria-label="Close">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -340,10 +428,11 @@ export function TechStackCanvas({
           </DialogHeader>
 
           <div className="px-6 py-5 space-y-4">
+            {/* Primary toggle */}
             {primaryVendor ? (
               <Toggle
-                checked={moduleHandledByPrimary}
-                onChange={setModuleHandledByPrimary}
+                checked={draftHandledByPrimary}
+                onChange={setDraftHandledByPrimary}
                 label={`Handled by ${primaryVendor}`}
               />
             ) : (
@@ -351,60 +440,72 @@ export function TechStackCanvas({
                 Set a primary vendor first to mark modules as covered.
               </p>
             )}
+
+            {/* Point solution vendor search — shown when NOT handled by primary */}
+            {!draftHandledByPrimary && (
+              <div className="space-y-1.5">
+                <label className="block text-label text-outsail-navy">
+                  Point Solution Vendor
+                </label>
+                <VendorCombobox
+                  value={draftPointVendor}
+                  onChange={setDraftPointVendor}
+                  placeholder={`Search ${activeModuleCategory} vendors…`}
+                  category={activeModuleCategory}
+                />
+                <p className="text-xs text-outsail-gray-600">
+                  Can&apos;t find yours? Type the name and press Enter.
+                </p>
+              </div>
+            )}
+
+            {moduleError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-card text-sm text-red-700">{moduleError}</div>
+            )}
           </div>
 
           <DialogFooter>
+            <button
+              type="button"
+              onClick={handleSaveModule}
+              disabled={moduleSaving}
+              className="flex-1 px-4 py-2.5 bg-outsail-teal text-white rounded-card text-label font-medium hover:bg-outsail-teal/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            >
+              {moduleSaving ? <><Spinner /> Saving…</> : 'Save'}
+            </button>
             <DialogClose asChild>
               <button
                 type="button"
+                disabled={moduleSaving}
                 className="px-4 py-2 border border-outsail-gray-200 text-outsail-gray-600 rounded-card text-label hover:border-outsail-navy transition-colors"
               >
-                Close
+                Cancel
               </button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ── Primary vendor modal (kept from Part 1) ── */}
+      {/* ── Primary vendor modal ── */}
       {showPrimaryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => !saving && setShowPrimaryModal(false)}
-          />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !saving && setShowPrimaryModal(false)} />
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg z-10 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-5 border-b border-outsail-gray-200">
               <div>
-                <h2 className="text-header-sm text-outsail-navy">
-                  {primaryVendor ? 'Update Primary HR Platform' : 'Set Primary HR Platform'}
-                </h2>
+                <h2 className="text-header-sm text-outsail-navy">{primaryVendor ? 'Update Primary HR Platform' : 'Set Primary HR Platform'}</h2>
                 <p className="text-xs text-outsail-gray-600 mt-0.5">Your core system of record for employee data</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowPrimaryModal(false)}
-                disabled={saving}
-                className="text-outsail-gray-600 hover:text-outsail-navy transition-colors p-1 rounded"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <button type="button" onClick={() => setShowPrimaryModal(false)} disabled={saving} className="text-outsail-gray-600 hover:text-outsail-navy p-1 rounded">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
             <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
               <div>
                 <label className="block text-label text-outsail-navy mb-1.5">HR Platform</label>
-                <VendorCombobox
-                  value={draftVendor}
-                  onChange={handleDraftVendorChange}
-                  placeholder="Search primary HR platforms..."
-                  canBePrimary={true}
-                />
-                <p className="text-xs text-outsail-gray-600 mt-1.5">
-                  Can&apos;t find yours? Type the name and press Enter.
-                </p>
+                <VendorCombobox value={draftVendor} onChange={handleDraftVendorChange} placeholder="Search primary HR platforms..." canBePrimary={true} />
+                <p className="text-xs text-outsail-gray-600 mt-1.5">Can&apos;t find yours? Type the name and press Enter.</p>
               </div>
 
               {draftVendor && (
@@ -421,62 +522,30 @@ export function TechStackCanvas({
                     {STANDARD_MODULES.map((label) => {
                       const checked = draftModules.includes(label)
                       return (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => toggleDraftModule(label)}
-                          className={`flex items-center gap-2.5 p-2.5 rounded-card border-2 text-left transition-all ${
-                            checked
-                              ? 'border-outsail-teal bg-outsail-teal/5 text-outsail-navy'
-                              : 'border-outsail-gray-200 bg-white text-outsail-gray-600 hover:border-outsail-teal/40'
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded flex-shrink-0 flex items-center justify-center border-2 transition-colors ${checked ? 'bg-outsail-teal border-outsail-teal' : 'border-outsail-gray-200 bg-white'}`}>
-                            {checked && (
-                              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
+                        <button key={label} type="button" onClick={() => toggleDraftModule(label)}
+                          className={`flex items-center gap-2.5 p-2.5 rounded-card border-2 text-left transition-all ${checked ? 'border-outsail-teal bg-outsail-teal/5 text-outsail-navy' : 'border-outsail-gray-200 bg-white text-outsail-gray-600 hover:border-outsail-teal/40'}`}>
+                          <div className={`w-4 h-4 rounded flex-shrink-0 flex items-center justify-center border-2 ${checked ? 'bg-outsail-teal border-outsail-teal' : 'border-outsail-gray-200 bg-white'}`}>
+                            {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                           </div>
                           <span className="text-xs font-medium leading-tight">{label}</span>
                         </button>
                       )
                     })}
                   </div>
-                  <p className="text-xs text-outsail-gray-600 mt-2.5">
-                    {draftModules.length} of {STANDARD_MODULES.length} modules selected
-                  </p>
+                  <p className="text-xs text-outsail-gray-600 mt-2.5">{draftModules.length} of {STANDARD_MODULES.length} modules selected</p>
                 </div>
               )}
 
-              {saveError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-card text-sm text-red-700">{saveError}</div>
-              )}
+              {saveError && <div className="p-3 bg-red-50 border border-red-200 rounded-card text-sm text-red-700">{saveError}</div>}
             </div>
 
             <div className="flex gap-3 px-6 py-4 border-t border-outsail-gray-200 bg-outsail-gray-50">
-              <button
-                type="button"
-                onClick={handleSavePrimary}
-                disabled={!draftVendor.trim() || saving}
-                className="flex-1 px-4 py-2.5 bg-outsail-teal text-white rounded-card text-label font-medium hover:bg-outsail-teal/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-              >
-                {saving ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Saving…
-                  </>
-                ) : 'Save Primary Vendor'}
+              <button type="button" onClick={handleSavePrimary} disabled={!draftVendor.trim() || saving}
+                className="flex-1 px-4 py-2.5 bg-outsail-teal text-white rounded-card text-label font-medium hover:bg-outsail-teal/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                {saving ? <><Spinner />Saving…</> : 'Save Primary Vendor'}
               </button>
-              <button
-                type="button"
-                onClick={() => setShowPrimaryModal(false)}
-                disabled={saving}
-                className="px-4 py-2 border border-outsail-gray-200 text-outsail-gray-600 rounded-card text-label hover:border-outsail-navy transition-colors"
-              >
+              <button type="button" onClick={() => setShowPrimaryModal(false)} disabled={saving}
+                className="px-4 py-2 border border-outsail-gray-200 text-outsail-gray-600 rounded-card text-label hover:border-outsail-navy transition-colors">
                 Cancel
               </button>
             </div>
