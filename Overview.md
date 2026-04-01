@@ -91,6 +91,43 @@ For local development, set the unprefixed versions in `.env.local`. See `.env.ex
 **Phase 3** (Outputs): All 6 output types with readiness gating and PDF/DOCX export.
 **Phase 4** (Scale): Vendor access, multi-stakeholder, analytics.
 
+## Product Flow
+
+### Phase A: Client Intake (Self-Service)
+1. Module 1: Company Profile form (built)
+2. Module 2: Tech Stack Canvas (built)
+3. Module 3: Quick Discovery Chat — 5 min AI conversation covering pain points, vendor landscape, complexities (NOT deep requirements gathering)
+
+### Phase B: Summary Review (Client)
+- System generates a discovery summary (what was captured) + recommended Blueprint structure (which sections, what depth)
+- Client reviews, edits, approves
+- Once approved → advisor is notified
+
+### Phase C: Deep Discovery (Advisor-Controlled)
+Advisor chooses one of two pathways:
+- **Pathway 1 (DEFAULT):** Advisor-led requirements call. System generates an editable question guide. Advisor conducts external call(s), uploads transcript(s). Multiple sessions per project, each processed separately, all feed the same Blueprint.
+- **Pathway 2 (HIDDEN, advisor-activated):** Self-service AI consultant made available to client. Advisor can also invite specific stakeholders to their own scoped chat sessions. Multiple stakeholders giving input is supported.
+
+### Phase D: Blueprint Generation (Advisor-First)
+- System generates Blueprint from all collected data
+- Blueprint goes to ADVISOR FIRST — never directly to client
+- Advisor reviews, enriches, polishes, then sends to client
+
+### Phase E: Client Blueprint Review
+- Client reviews, comments, approves section by section
+
+### Phase F: Outputs
+- Available after Blueprint approval
+- 6 output types: Project Summary, Tech Stack Viz, Discovery Summary, Meeting Agendas, Scorecard Settings, Implementation Blueprint
+
+## Key Rules
+- Blueprint sections are DYNAMIC — determined by AI after discovery, not a fixed list
+- Self-service chat is HIDDEN by default — advisor activates per project
+- Advisor can invite stakeholders to their own scoped chat sessions
+- Multiple transcript sessions per project — each processed separately
+- Advisor always sees Blueprint before client
+- Project status flow: Intake → Discovery Complete → Summary Approved → Deep Discovery → Blueprint in Progress → Client Review → Approved → Outputs
+
 ## Important Rules
 - Always read `/docs/SPEC.md` for detailed requirements before implementing a feature.
 - Use the OutSail brand colors exactly as specified — do not substitute.
