@@ -3,18 +3,24 @@
 import { useState } from 'react'
 import { VendorCombobox } from './vendor-combobox'
 import { HCM_CAPABILITIES, VENDOR_DEFAULT_MODULES } from '@/lib/tech-stack/vendors'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STANDARD_MODULES = HCM_CAPABILITIES.filter((c) => c !== 'Custom')
 
-// SVG viewBox dimensions
 const VB_W = 900
 const VB_H = 580
-
-// Geometry
-const CX = VB_W / 2        // 450 — center x
-const CY = VB_H / 2 - 10  // 280 — center y (slightly above midpoint)
+const CX = VB_W / 2
+const CY = VB_H / 2 - 10   // 280
 const PRIMARY_R = 82
 const MODULE_R = 52
 const ORBIT_R = 228
@@ -29,22 +35,19 @@ function satPos(index: number): { x: number; y: number } {
   }
 }
 
-// Break a module label into 1–2 SVG text lines
 function splitLabel(label: string): string[] {
-  if (label.includes('/')) {
-    const [a, b] = label.split('/')
-    return [a.trim(), b.trim()]
+  const map: Record<string, string[]> = {
+    'Time & Attendance': ['Time &', 'Attendance'],
+    'Benefits Admin': ['Benefits', 'Admin'],
+    'ERP/General Ledger': ['ERP / GL'],
+    'Global Payroll': ['Global', 'Payroll'],
+    'Recruiting/ATS': ['Recruiting', 'ATS'],
+    'Learning/LMS': ['Learning', 'LMS'],
   }
-  if (label === 'Time & Attendance') return ['Time &', 'Attendance']
-  if (label === 'Benefits Admin') return ['Benefits', 'Admin']
-  if (label === 'ERP/General Ledger') return ['ERP / GL']
-  if (label === 'Global Payroll') return ['Global', 'Payroll']
-  if (label === 'Recruiting/ATS') return ['Recruiting', 'ATS']
-  if (label === 'Learning/LMS') return ['Learning', 'LMS']
-  return [label]
+  return map[label] ?? [label]
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface TechStackCanvasProps {
   projectId: string
@@ -53,7 +56,40 @@ export interface TechStackCanvasProps {
   onComplete?: () => void
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Sub-component: Toggle switch ─────────────────────────────────────────────
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  label: string
+}) {
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg border border-outsail-gray-200 bg-outsail-gray-50">
+      <span className="text-sm font-medium text-outsail-navy">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-outsail-teal/40 ${
+          checked ? 'bg-outsail-teal' : 'bg-outsail-gray-200'
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${
+            checked ? 'translate-x-5' : 'translate-x-0.5'
+          }`}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export function TechStackCanvas({
   projectId,
@@ -61,32 +97,43 @@ export function TechStackCanvas({
   initialCoveredModules = [],
   onComplete,
 }: TechStackCanvasProps) {
-  // Saved state
+  // ── Primary vendor state
   const [primaryVendor, setPrimaryVendor] = useState(initialPrimaryVendor)
   const [coveredModules, setCoveredModules] = useState<string[]>(initialCoveredModules)
 
-  // Modal/draft state
-  const [showModal, setShowModal] = useState(false)
+  // ── Primary vendor modal draft state
+  const [showPrimaryModal, setShowPrimaryModal] = useState(false)
   const [draftVendor, setDraftVendor] = useState(initialPrimaryVendor)
   const [draftModules, setDraftModules] = useState<string[]>(initialCoveredModules)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  // ── Modal handlers ───────────────────────────────────────────────────────
+  // ── Module modal state
+  const [activeModule, setActiveModule] = useState<string | null>(null)
+  // Whether the active module is toggled as "handled by primary vendor"
+  const [moduleHandledByPrimary, setModuleHandledByPrimary] = useState(false)
 
-  function openModal() {
+  // ── Open module modal ─────────────────────────────────────────────────────
+
+  function openModuleModal(label: string) {
+    setModuleHandledByPrimary(coveredModules.includes(label))
+    setActiveModule(label)
+  }
+
+  // ── Primary modal handlers ────────────────────────────────────────────────
+
+  function openPrimaryModal() {
     setDraftVendor(primaryVendor)
     setDraftModules(coveredModules)
     setSaveError(null)
-    setShowModal(true)
+    setShowPrimaryModal(true)
   }
 
   function handleDraftVendorChange(v: string) {
     setDraftVendor(v)
-    // Pre-populate from known defaults
     const defaults = VENDOR_DEFAULT_MODULES[v]
     if (defaults) setDraftModules(defaults)
-    else if (!primaryVendor) setDraftModules([]) // only clear when first time
+    else if (!primaryVendor) setDraftModules([])
   }
 
   function toggleDraftModule(label: string) {
@@ -95,7 +142,7 @@ export function TechStackCanvas({
     )
   }
 
-  async function handleSave() {
+  async function handleSavePrimary() {
     if (!draftVendor.trim()) return
     setSaving(true)
     setSaveError(null)
@@ -112,7 +159,7 @@ export function TechStackCanvas({
       if (!res.ok) throw new Error('Failed to save. Please try again.')
       setPrimaryVendor(draftVendor.trim())
       setCoveredModules(draftModules)
-      setShowModal(false)
+      setShowPrimaryModal(false)
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
@@ -120,11 +167,11 @@ export function TechStackCanvas({
     }
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-4">
-      {/* Canvas */}
+      {/* ── Canvas ── */}
       <div className="w-full rounded-xl border border-outsail-gray-200 bg-[#F8F7F4] overflow-hidden">
         <svg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
@@ -132,7 +179,7 @@ export function TechStackCanvas({
           style={{ maxHeight: 580, display: 'block' }}
           aria-label="Tech stack canvas"
         >
-          {/* Dot grid background */}
+          {/* Dot grid */}
           {Array.from({ length: 10 }, (_, row) =>
             Array.from({ length: 16 }, (_, col) => (
               <circle
@@ -145,81 +192,72 @@ export function TechStackCanvas({
             ))
           )}
 
-          {/* Lines from center to satellite circles */}
+          {/* Spoke lines */}
           {STANDARD_MODULES.map((label, i) => {
             const pos = satPos(i)
-            const isCovered = coveredModules.includes(label)
+            const covered = coveredModules.includes(label)
             return (
               <line
                 key={`line-${i}`}
-                x1={CX}
-                y1={CY}
-                x2={pos.x}
-                y2={pos.y}
-                stroke={isCovered ? '#1D9E75' : '#D3D1C7'}
-                strokeWidth={isCovered ? 2 : 1.5}
-                strokeDasharray={isCovered ? undefined : '6,4'}
-                opacity={isCovered ? 0.6 : 0.4}
+                x1={CX} y1={CY} x2={pos.x} y2={pos.y}
+                stroke={covered ? '#1D9E75' : '#D3D1C7'}
+                strokeWidth={covered ? 2 : 1.5}
+                strokeDasharray={covered ? undefined : '6,4'}
+                opacity={covered ? 0.6 : 0.4}
               />
             )
           })}
 
-          {/* Satellite module circles */}
+          {/* Satellite circles */}
           {STANDARD_MODULES.map((label, i) => {
             const pos = satPos(i)
-            const isCovered = coveredModules.includes(label)
+            const covered = coveredModules.includes(label)
             const lines = splitLabel(label)
             const lineSpacing = 14
 
             return (
-              <g key={label}>
+              <g
+                key={label}
+                onClick={() => openModuleModal(label)}
+                style={{ cursor: 'pointer' }}
+                role="button"
+                aria-label={`Configure ${label}`}
+              >
+                {/* Expanded hit-area */}
+                <circle cx={pos.x} cy={pos.y} r={MODULE_R + 6} fill="transparent" />
+
                 <circle
-                  cx={pos.x}
-                  cy={pos.y}
-                  r={MODULE_R}
-                  fill={isCovered ? '#E1F5EE' : 'white'}
-                  stroke={isCovered ? '#1D9E75' : '#D3D1C7'}
-                  strokeWidth={isCovered ? 2.5 : 1.5}
-                  strokeDasharray={isCovered ? undefined : '7,5'}
+                  cx={pos.x} cy={pos.y} r={MODULE_R}
+                  fill={covered ? '#E1F5EE' : 'white'}
+                  stroke={covered ? '#1D9E75' : '#D3D1C7'}
+                  strokeWidth={covered ? 2.5 : 1.5}
+                  strokeDasharray={covered ? undefined : '7,5'}
                 />
 
-                {/* Coverage checkmark badge */}
-                {isCovered && (
+                {/* Checkmark badge */}
+                {covered && (
                   <>
-                    <circle
-                      cx={pos.x + MODULE_R * 0.65}
-                      cy={pos.y - MODULE_R * 0.65}
-                      r={10}
-                      fill="#1D9E75"
-                    />
+                    <circle cx={pos.x + MODULE_R * 0.65} cy={pos.y - MODULE_R * 0.65} r={10} fill="#1D9E75" />
                     <text
-                      x={pos.x + MODULE_R * 0.65}
-                      y={pos.y - MODULE_R * 0.65 + 4}
-                      textAnchor="middle"
-                      fontSize={11}
-                      fontFamily="Inter, sans-serif"
-                      fill="white"
-                      fontWeight={700}
-                    >
-                      ✓
-                    </text>
+                      x={pos.x + MODULE_R * 0.65} y={pos.y - MODULE_R * 0.65 + 4}
+                      textAnchor="middle" fontSize={11} fontFamily="Inter, sans-serif"
+                      fill="white" fontWeight={700}
+                    >✓</text>
                   </>
                 )}
 
-                {/* Label lines */}
+                {/* Label */}
                 {lines.map((line, li) => {
                   const totalH = (lines.length - 1) * lineSpacing
                   const baseY = pos.y - totalH / 2 + li * lineSpacing + 4
                   return (
                     <text
                       key={li}
-                      x={pos.x}
-                      y={baseY}
-                      textAnchor="middle"
-                      fontSize={10}
+                      x={pos.x} y={baseY}
+                      textAnchor="middle" fontSize={10}
                       fontFamily="Inter, sans-serif"
-                      fontWeight={isCovered ? 600 : 500}
-                      fill={isCovered ? '#0F6E56' : '#6B6B65'}
+                      fontWeight={covered ? 600 : 500}
+                      fill={covered ? '#0F6E56' : '#6B6B65'}
                     >
                       {line}
                     </text>
@@ -229,111 +267,45 @@ export function TechStackCanvas({
             )
           })}
 
-          {/* Primary circle — clickable */}
+          {/* Primary circle */}
           <g
-            onClick={openModal}
+            onClick={openPrimaryModal}
             style={{ cursor: 'pointer' }}
             role="button"
             aria-label={primaryVendor ? `Edit primary vendor: ${primaryVendor}` : 'Set primary vendor'}
           >
-            {/* Hover ring */}
+            <circle cx={CX} cy={CY} r={PRIMARY_R + 6} fill="transparent" />
             <circle
-              cx={CX}
-              cy={CY}
-              r={PRIMARY_R + 6}
-              fill="transparent"
-              stroke="transparent"
-              className="hover:stroke-outsail-teal/20"
-              strokeWidth={8}
-            />
-
-            <circle
-              cx={CX}
-              cy={CY}
-              r={PRIMARY_R}
+              cx={CX} cy={CY} r={PRIMARY_R}
               fill="white"
               stroke={primaryVendor ? '#1B3A5C' : '#D3D1C7'}
               strokeWidth={primaryVendor ? 3 : 2}
               strokeDasharray={primaryVendor ? undefined : '12,7'}
             />
-
             {primaryVendor ? (
-              /* Filled state */
               <>
-                <text
-                  x={CX}
-                  y={CY - 12}
-                  textAnchor="middle"
-                  fontSize={15}
-                  fontFamily="Inter, sans-serif"
-                  fontWeight={700}
-                  fill="#1B3A5C"
-                >
+                <text x={CX} y={CY - 12} textAnchor="middle" fontSize={15} fontFamily="Inter, sans-serif" fontWeight={700} fill="#1B3A5C">
                   {primaryVendor.length > 17 ? primaryVendor.slice(0, 16) + '…' : primaryVendor}
                 </text>
-                <text
-                  x={CX}
-                  y={CY + 7}
-                  textAnchor="middle"
-                  fontSize={9}
-                  fontFamily="Inter, sans-serif"
-                  fill="#9CA3AF"
-                  letterSpacing={1}
-                >
+                <text x={CX} y={CY + 7} textAnchor="middle" fontSize={9} fontFamily="Inter, sans-serif" fill="#9CA3AF" letterSpacing={1}>
                   PRIMARY VENDOR
                 </text>
-                <text
-                  x={CX}
-                  y={CY + 25}
-                  textAnchor="middle"
-                  fontSize={10}
-                  fontFamily="Inter, sans-serif"
-                  fill="#1D9E75"
-                  fontWeight={500}
-                >
+                <text x={CX} y={CY + 25} textAnchor="middle" fontSize={10} fontFamily="Inter, sans-serif" fill="#1D9E75" fontWeight={500}>
                   {coveredModules.length} module{coveredModules.length !== 1 ? 's' : ''} covered
                 </text>
               </>
             ) : (
-              /* Empty state */
               <>
-                <text
-                  x={CX}
-                  y={CY - 10}
-                  textAnchor="middle"
-                  fontSize={32}
-                  fontFamily="Inter, sans-serif"
-                  fill="#D3D1C7"
-                >
-                  +
-                </text>
-                <text
-                  x={CX}
-                  y={CY + 14}
-                  textAnchor="middle"
-                  fontSize={11}
-                  fontFamily="Inter, sans-serif"
-                  fill="#9CA3AF"
-                >
-                  Click to set your
-                </text>
-                <text
-                  x={CX}
-                  y={CY + 30}
-                  textAnchor="middle"
-                  fontSize={11}
-                  fontFamily="Inter, sans-serif"
-                  fill="#9CA3AF"
-                >
-                  primary vendor
-                </text>
+                <text x={CX} y={CY - 10} textAnchor="middle" fontSize={32} fontFamily="Inter, sans-serif" fill="#D3D1C7">+</text>
+                <text x={CX} y={CY + 14} textAnchor="middle" fontSize={11} fontFamily="Inter, sans-serif" fill="#9CA3AF">Click to set your</text>
+                <text x={CX} y={CY + 30} textAnchor="middle" fontSize={11} fontFamily="Inter, sans-serif" fill="#9CA3AF">primary vendor</text>
               </>
             )}
           </g>
         </svg>
       </div>
 
-      {/* Continue button */}
+      {/* Continue */}
       {primaryVendor && onComplete && (
         <div className="flex justify-end">
           <button
@@ -346,33 +318,74 @@ export function TechStackCanvas({
         </div>
       )}
 
-      {/* Primary Vendor Modal */}
-      {showModal && (
+      {/* ── Module modal (Commit 1: toggle + close only) ── */}
+      <Dialog open={activeModule !== null} onOpenChange={(open) => { if (!open) setActiveModule(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div>
+              <DialogTitle>{activeModule}</DialogTitle>
+              <DialogDescription>Configure how this module is covered in your tech stack.</DialogDescription>
+            </div>
+            <DialogClose asChild>
+              <button
+                type="button"
+                className="rounded p-1 text-outsail-gray-600 hover:text-outsail-navy transition-colors"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </DialogClose>
+          </DialogHeader>
+
+          <div className="px-6 py-5 space-y-4">
+            {primaryVendor ? (
+              <Toggle
+                checked={moduleHandledByPrimary}
+                onChange={setModuleHandledByPrimary}
+                label={`Handled by ${primaryVendor}`}
+              />
+            ) : (
+              <p className="text-sm text-outsail-gray-600">
+                Set a primary vendor first to mark modules as covered.
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <button
+                type="button"
+                className="px-4 py-2 border border-outsail-gray-200 text-outsail-gray-600 rounded-card text-label hover:border-outsail-navy transition-colors"
+              >
+                Close
+              </button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Primary vendor modal (kept from Part 1) ── */}
+      {showPrimaryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => !saving && setShowModal(false)}
+            onClick={() => !saving && setShowPrimaryModal(false)}
           />
-
-          {/* Panel */}
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg z-10 overflow-hidden">
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-outsail-gray-200">
               <div>
                 <h2 className="text-header-sm text-outsail-navy">
                   {primaryVendor ? 'Update Primary HR Platform' : 'Set Primary HR Platform'}
                 </h2>
-                <p className="text-xs text-outsail-gray-600 mt-0.5">
-                  Your core system of record for employee data
-                </p>
+                <p className="text-xs text-outsail-gray-600 mt-0.5">Your core system of record for employee data</p>
               </div>
               <button
                 type="button"
-                onClick={() => setShowModal(false)}
+                onClick={() => setShowPrimaryModal(false)}
                 disabled={saving}
                 className="text-outsail-gray-600 hover:text-outsail-navy transition-colors p-1 rounded"
-                aria-label="Close"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -381,11 +394,8 @@ export function TechStackCanvas({
             </div>
 
             <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
-              {/* Vendor search */}
               <div>
-                <label className="block text-label text-outsail-navy mb-1.5">
-                  HR Platform
-                </label>
+                <label className="block text-label text-outsail-navy mb-1.5">HR Platform</label>
                 <VendorCombobox
                   value={draftVendor}
                   onChange={handleDraftVendorChange}
@@ -393,36 +403,20 @@ export function TechStackCanvas({
                   canBePrimary={true}
                 />
                 <p className="text-xs text-outsail-gray-600 mt-1.5">
-                  Can&apos;t find yours? Type the name and press Enter to use a custom entry.
+                  Can&apos;t find yours? Type the name and press Enter.
                 </p>
               </div>
 
-              {/* Module coverage */}
               {draftVendor && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-label text-outsail-navy">
-                      Which modules does {draftVendor} cover?
-                    </p>
+                    <p className="text-label text-outsail-navy">Which modules does {draftVendor} cover?</p>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDraftModules(STANDARD_MODULES)}
-                        className="text-xs text-outsail-teal hover:underline"
-                      >
-                        All
-                      </button>
+                      <button type="button" onClick={() => setDraftModules(STANDARD_MODULES)} className="text-xs text-outsail-teal hover:underline">All</button>
                       <span className="text-outsail-gray-200">·</span>
-                      <button
-                        type="button"
-                        onClick={() => setDraftModules([])}
-                        className="text-xs text-outsail-gray-600 hover:underline"
-                      >
-                        None
-                      </button>
+                      <button type="button" onClick={() => setDraftModules([])} className="text-xs text-outsail-gray-600 hover:underline">None</button>
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-2">
                     {STANDARD_MODULES.map((label) => {
                       const checked = draftModules.includes(label)
@@ -437,21 +431,9 @@ export function TechStackCanvas({
                               : 'border-outsail-gray-200 bg-white text-outsail-gray-600 hover:border-outsail-teal/40'
                           }`}
                         >
-                          <div
-                            className={`w-4 h-4 rounded flex-shrink-0 flex items-center justify-center border-2 transition-colors ${
-                              checked
-                                ? 'bg-outsail-teal border-outsail-teal'
-                                : 'border-outsail-gray-200 bg-white'
-                            }`}
-                          >
+                          <div className={`w-4 h-4 rounded flex-shrink-0 flex items-center justify-center border-2 transition-colors ${checked ? 'bg-outsail-teal border-outsail-teal' : 'border-outsail-gray-200 bg-white'}`}>
                             {checked && (
-                              <svg
-                                className="w-2.5 h-2.5 text-white"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={3}
-                              >
+                              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>
                             )}
@@ -461,26 +443,21 @@ export function TechStackCanvas({
                       )
                     })}
                   </div>
-
                   <p className="text-xs text-outsail-gray-600 mt-2.5">
                     {draftModules.length} of {STANDARD_MODULES.length} modules selected
                   </p>
                 </div>
               )}
 
-              {/* Error */}
               {saveError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-card text-sm text-red-700">
-                  {saveError}
-                </div>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-card text-sm text-red-700">{saveError}</div>
               )}
             </div>
 
-            {/* Footer actions */}
             <div className="flex gap-3 px-6 py-4 border-t border-outsail-gray-200 bg-outsail-gray-50">
               <button
                 type="button"
-                onClick={handleSave}
+                onClick={handleSavePrimary}
                 disabled={!draftVendor.trim() || saving}
                 className="flex-1 px-4 py-2.5 bg-outsail-teal text-white rounded-card text-label font-medium hover:bg-outsail-teal/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
@@ -492,13 +469,11 @@ export function TechStackCanvas({
                     </svg>
                     Saving…
                   </>
-                ) : (
-                  'Save Primary Vendor'
-                )}
+                ) : 'Save Primary Vendor'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowModal(false)}
+                onClick={() => setShowPrimaryModal(false)}
                 disabled={saving}
                 className="px-4 py-2 border border-outsail-gray-200 text-outsail-gray-600 rounded-card text-label hover:border-outsail-navy transition-colors"
               >
