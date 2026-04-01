@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { VendorCombobox } from './vendor-combobox'
-import { HCM_CAPABILITIES, VENDOR_DEFAULT_MODULES, CATEGORY_TO_SYSTEM_TYPE } from '@/lib/tech-stack/vendors'
+import { StarRating } from './star-rating'
+import { HCM_CAPABILITIES, VENDOR_DEFAULT_MODULES } from '@/lib/tech-stack/vendors'
 import {
   Dialog,
   DialogContent,
@@ -49,49 +50,43 @@ function splitLabel(label: string): string[] {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface Ratings {
+  admin: number
+  employee: number
+  service: number
+}
+
+interface PointSolutionData {
+  vendor: string
+  ratings: Ratings
+  alsoCovers: string[]   // module labels
+  notes: string
+}
+
 export interface TechStackCanvasProps {
   projectId: string
   initialPrimaryVendor?: string
   initialCoveredModules?: string[]
-  /** Module-label → vendor-name for pre-loaded point solutions */
-  initialPointSolutions?: Record<string, string>
+  /** Pre-loaded point solutions keyed by module label */
+  initialPointSolutions?: Record<string, PointSolutionData>
   onComplete?: () => void
 }
 
-// ─── Sub-component: Toggle switch ─────────────────────────────────────────────
+// ─── Small reusable UI ────────────────────────────────────────────────────────
 
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean
-  onChange: (v: boolean) => void
-  label: string
-}) {
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <div className="flex items-center justify-between p-3 rounded-lg border border-outsail-gray-200 bg-outsail-gray-50">
       <span className="text-sm font-medium text-outsail-navy">{label}</span>
       <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-outsail-teal/40 ${
-          checked ? 'bg-outsail-teal' : 'bg-outsail-gray-200'
-        }`}
+        type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-outsail-teal/40 ${checked ? 'bg-outsail-teal' : 'bg-outsail-gray-200'}`}
       >
-        <span
-          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${
-            checked ? 'translate-x-5' : 'translate-x-0.5'
-          }`}
-        />
+        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
       </button>
     </div>
   )
 }
-
-// ─── Spinner ──────────────────────────────────────────────────────────────────
 
 function Spinner() {
   return (
@@ -104,6 +99,8 @@ function Spinner() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+const DEFAULT_RATINGS: Ratings = { admin: 0, employee: 0, service: 0 }
+
 export function TechStackCanvas({
   projectId,
   initialPrimaryVendor = '',
@@ -114,8 +111,7 @@ export function TechStackCanvas({
   // ── Persistent state
   const [primaryVendor, setPrimaryVendor] = useState(initialPrimaryVendor)
   const [coveredModules, setCoveredModules] = useState<string[]>(initialCoveredModules)
-  // module-label → vendor name for saved point solutions
-  const [pointSolutions, setPointSolutions] = useState<Record<string, string>>(initialPointSolutions)
+  const [pointSolutions, setPointSolutions] = useState<Record<string, PointSolutionData>>(initialPointSolutions)
 
   // ── Primary vendor modal draft state
   const [showPrimaryModal, setShowPrimaryModal] = useState(false)
@@ -124,51 +120,46 @@ export function TechStackCanvas({
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  // ── Module modal state
+  // ── Module modal draft state
   const [activeModule, setActiveModule] = useState<string | null>(null)
   const [draftHandledByPrimary, setDraftHandledByPrimary] = useState(false)
   const [draftPointVendor, setDraftPointVendor] = useState('')
+  const [draftRatings, setDraftRatings] = useState<Ratings>(DEFAULT_RATINGS)
+  const [draftAlsoCovers, setDraftAlsoCovers] = useState<string[]>([])
+  const [draftNotes, setDraftNotes] = useState('')
   const [moduleSaving, setModuleSaving] = useState(false)
   const [moduleError, setModuleError] = useState<string | null>(null)
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Build PUT payload ─────────────────────────────────────────────────────
 
-  /**
-   * Build a modules array from current pointSolutions state, optionally
-   * overriding one entry (used when saving a single module).
-   */
-  function buildModulesPayload(
-    overrideLabel?: string,
-    overrideVendor?: string,
-    removeLabel?: string
-  ) {
-    const merged: Record<string, string> = { ...pointSolutions }
-    if (overrideLabel && overrideVendor) merged[overrideLabel] = overrideVendor
-    if (removeLabel) delete merged[removeLabel]
-
+  function buildModulesPayload(overrides: Record<string, PointSolutionData | null> = {}) {
+    const merged: Record<string, PointSolutionData> = { ...pointSolutions }
+    for (const [label, val] of Object.entries(overrides)) {
+      if (val === null) {
+        delete merged[label]
+      } else {
+        merged[label] = val
+      }
+    }
     return Object.entries(merged)
-      .filter(([, v]) => v.trim())
-      .map(([label, vendor]) => ({
+      .filter(([, d]) => d.vendor.trim())
+      .map(([label, d]) => ({
         id: label.toLowerCase().replace(/[^a-z0-9]/g, '_'),
         label,
         isCustom: false,
         canvasX: 0,
         canvasY: 0,
-        vendor: vendor.trim(),
-        vendorNotes: '',
+        vendor: d.vendor.trim(),
+        vendorNotes: d.notes,
         coveredByPrimary: false,
-        ratings: { admin: 3, employee: 3, service: 3 },
+        ratings: d.ratings,
         integrationQuality: 'mostly_automated' as const,
         integrationDirection: 'bidirectional' as const,
-        alsoCoversLabels: [],
+        alsoCoversLabels: d.alsoCovers,
       }))
   }
 
-  async function putTechStack(
-    pv: string,
-    cm: string[],
-    modulesPayload: ReturnType<typeof buildModulesPayload>
-  ) {
+  async function putTechStack(pv: string, cm: string[], modulesPayload: ReturnType<typeof buildModulesPayload>) {
     const res = await fetch(`/api/projects/${projectId}/tech-stack`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -182,13 +173,23 @@ export function TechStackCanvas({
     if (!res.ok) throw new Error('Failed to save. Please try again.')
   }
 
-  // ── Open module modal ─────────────────────────────────────────────────────
+  // ── Module modal open ─────────────────────────────────────────────────────
 
   function openModuleModal(label: string) {
+    const existing = pointSolutions[label]
     setDraftHandledByPrimary(coveredModules.includes(label))
-    setDraftPointVendor(pointSolutions[label] ?? '')
+    setDraftPointVendor(existing?.vendor ?? '')
+    setDraftRatings(existing?.ratings ?? DEFAULT_RATINGS)
+    setDraftAlsoCovers(existing?.alsoCovers ?? [])
+    setDraftNotes(existing?.notes ?? '')
     setModuleError(null)
     setActiveModule(label)
+  }
+
+  function toggleAlsoCover(label: string) {
+    setDraftAlsoCovers((prev) =>
+      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]
+    )
   }
 
   // ── Save module ───────────────────────────────────────────────────────────
@@ -200,36 +201,45 @@ export function TechStackCanvas({
 
     try {
       let newCoveredModules = coveredModules
-      let newPointSolutions = { ...pointSolutions }
+      let overrides: Record<string, PointSolutionData | null> = {}
 
       if (draftHandledByPrimary) {
-        // Mark as covered by primary; remove any point solution
         newCoveredModules = coveredModules.includes(activeModule)
           ? coveredModules
           : [...coveredModules, activeModule]
-        delete newPointSolutions[activeModule]
-        await putTechStack(primaryVendor, newCoveredModules, buildModulesPayload(undefined, undefined, activeModule))
+        overrides[activeModule] = null
       } else {
-        // Remove from primary coverage; save point solution vendor if set
         newCoveredModules = coveredModules.filter((m) => m !== activeModule)
         if (draftPointVendor.trim()) {
-          newPointSolutions[activeModule] = draftPointVendor.trim()
+          overrides[activeModule] = {
+            vendor: draftPointVendor.trim(),
+            ratings: draftRatings,
+            alsoCovers: draftAlsoCovers,
+            notes: draftNotes,
+          }
         } else {
-          delete newPointSolutions[activeModule]
+          overrides[activeModule] = null
         }
-        await putTechStack(
-          primaryVendor,
-          newCoveredModules,
-          buildModulesPayload(
-            draftPointVendor.trim() ? activeModule : undefined,
-            draftPointVendor.trim() || undefined,
-            draftPointVendor.trim() ? undefined : activeModule
-          )
-        )
       }
 
+      await putTechStack(primaryVendor, newCoveredModules, buildModulesPayload(overrides))
+
+      // Update local state
       setCoveredModules(newCoveredModules)
-      setPointSolutions(newPointSolutions)
+      setPointSolutions((prev) => {
+        const next = { ...prev }
+        if (draftHandledByPrimary || !draftPointVendor.trim()) {
+          delete next[activeModule]
+        } else {
+          next[activeModule] = {
+            vendor: draftPointVendor.trim(),
+            ratings: draftRatings,
+            alsoCovers: draftAlsoCovers,
+            notes: draftNotes,
+          }
+        }
+        return next
+      })
       setActiveModule(null)
     } catch (e) {
       setModuleError(e instanceof Error ? e.message : 'Something went wrong')
@@ -238,7 +248,7 @@ export function TechStackCanvas({
     }
   }
 
-  // ── Primary modal handlers ────────────────────────────────────────────────
+  // ── Primary vendor handlers ───────────────────────────────────────────────
 
   function openPrimaryModal() {
     setDraftVendor(primaryVendor)
@@ -276,11 +286,6 @@ export function TechStackCanvas({
     }
   }
 
-  // ─── Derived ──────────────────────────────────────────────────────────────
-
-  // Determine the system_type label for the active module (for VendorCombobox category hint)
-  const activeModuleCategory = activeModule ?? ''
-
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -307,9 +312,7 @@ export function TechStackCanvas({
             const hasPS = Boolean(pointSolutions[label])
             const active = covered || hasPS
             return (
-              <line
-                key={`line-${i}`}
-                x1={CX} y1={CY} x2={pos.x} y2={pos.y}
+              <line key={`line-${i}`} x1={CX} y1={CY} x2={pos.x} y2={pos.y}
                 stroke={active ? '#1D9E75' : '#D3D1C7'}
                 strokeWidth={active ? 2 : 1.5}
                 strokeDasharray={active ? undefined : '6,4'}
@@ -322,30 +325,22 @@ export function TechStackCanvas({
           {STANDARD_MODULES.map((label, i) => {
             const pos = satPos(i)
             const covered = coveredModules.includes(label)
-            const psVendor = pointSolutions[label]
+            const psData = pointSolutions[label]
             const lines = splitLabel(label)
             const lineSpacing = 14
 
-            // Visual state
             let fill = 'white'
             let stroke = '#D3D1C7'
             let sw = 1.5
             let dash: string | undefined = '7,5'
             if (covered) { fill = '#E1F5EE'; stroke = '#1D9E75'; sw = 2.5; dash = undefined }
-            else if (psVendor) { fill = '#EEF2FF'; stroke = '#4338CA'; sw = 2; dash = undefined }
+            else if (psData) { fill = '#EEF2FF'; stroke = '#4338CA'; sw = 2; dash = undefined }
 
             return (
-              <g
-                key={label}
-                onClick={() => openModuleModal(label)}
-                style={{ cursor: 'pointer' }}
-                role="button"
-                aria-label={`Configure ${label}`}
-              >
+              <g key={label} onClick={() => openModuleModal(label)} style={{ cursor: 'pointer' }} role="button" aria-label={`Configure ${label}`}>
                 <circle cx={pos.x} cy={pos.y} r={MODULE_R + 6} fill="transparent" />
                 <circle cx={pos.x} cy={pos.y} r={MODULE_R} fill={fill} stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
 
-                {/* Checkmark badge */}
                 {covered && (
                   <>
                     <circle cx={pos.x + MODULE_R * 0.65} cy={pos.y - MODULE_R * 0.65} r={10} fill="#1D9E75" />
@@ -353,11 +348,10 @@ export function TechStackCanvas({
                   </>
                 )}
 
-                {/* Point solution: show vendor name above module label */}
-                {psVendor && !covered ? (
+                {psData && !covered ? (
                   <>
                     <text x={pos.x} y={pos.y - 8} textAnchor="middle" fontSize={9} fontFamily="Inter, sans-serif" fontWeight={700} fill="#4338CA">
-                      {psVendor.length > 13 ? psVendor.slice(0, 12) + '…' : psVendor}
+                      {psData.vendor.length > 13 ? psData.vendor.slice(0, 12) + '…' : psData.vendor}
                     </text>
                     {lines.map((line, li) => (
                       <text key={li} x={pos.x} y={pos.y + 7 + li * 11} textAnchor="middle" fontSize={8} fontFamily="Inter, sans-serif" fill="#9CA3AF">{line}</text>
@@ -427,36 +421,98 @@ export function TechStackCanvas({
             </DialogClose>
           </DialogHeader>
 
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-6 py-5 space-y-5 max-h-[68vh] overflow-y-auto">
             {/* Primary toggle */}
             {primaryVendor ? (
-              <Toggle
-                checked={draftHandledByPrimary}
-                onChange={setDraftHandledByPrimary}
-                label={`Handled by ${primaryVendor}`}
-              />
+              <Toggle checked={draftHandledByPrimary} onChange={setDraftHandledByPrimary} label={`Handled by ${primaryVendor}`} />
             ) : (
-              <p className="text-sm text-outsail-gray-600">
-                Set a primary vendor first to mark modules as covered.
-              </p>
+              <p className="text-sm text-outsail-gray-600">Set a primary vendor first to mark modules as covered.</p>
             )}
 
-            {/* Point solution vendor search — shown when NOT handled by primary */}
+            {/* Point solution section — shown when NOT handled by primary */}
             {!draftHandledByPrimary && (
-              <div className="space-y-1.5">
-                <label className="block text-label text-outsail-navy">
-                  Point Solution Vendor
-                </label>
-                <VendorCombobox
-                  value={draftPointVendor}
-                  onChange={setDraftPointVendor}
-                  placeholder={`Search ${activeModuleCategory} vendors…`}
-                  category={activeModuleCategory}
-                />
-                <p className="text-xs text-outsail-gray-600">
-                  Can&apos;t find yours? Type the name and press Enter.
-                </p>
-              </div>
+              <>
+                {/* Vendor search */}
+                <div className="space-y-1.5">
+                  <label className="block text-label text-outsail-navy">Point Solution Vendor</label>
+                  <VendorCombobox
+                    value={draftPointVendor}
+                    onChange={setDraftPointVendor}
+                    placeholder={`Search ${activeModule ?? ''} vendors…`}
+                    category={activeModule ?? ''}
+                  />
+                  <p className="text-xs text-outsail-gray-600">Can&apos;t find yours? Type the name and press Enter.</p>
+                </div>
+
+                {/* Only show the rest once a vendor is selected */}
+                {draftPointVendor && (
+                  <>
+                    {/* Star ratings */}
+                    <div className="space-y-2">
+                      <p className="text-label text-outsail-navy">Ratings</p>
+                      <StarRating
+                        label="Admin Experience"
+                        value={draftRatings.admin}
+                        onChange={(v) => setDraftRatings((r) => ({ ...r, admin: v }))}
+                      />
+                      <StarRating
+                        label="Employee Experience"
+                        value={draftRatings.employee}
+                        onChange={(v) => setDraftRatings((r) => ({ ...r, employee: v }))}
+                      />
+                      <StarRating
+                        label="Service / Support"
+                        value={draftRatings.service}
+                        onChange={(v) => setDraftRatings((r) => ({ ...r, service: v }))}
+                      />
+                    </div>
+
+                    {/* Also covers */}
+                    <div className="space-y-2">
+                      <p className="text-label text-outsail-navy">Also covers</p>
+                      <p className="text-xs text-outsail-gray-600">Select other modules this vendor handles.</p>
+                      <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1">
+                        {STANDARD_MODULES.filter((m) => m !== activeModule).map((m) => {
+                          const checked = draftAlsoCovers.includes(m)
+                          return (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => toggleAlsoCover(m)}
+                              className={`flex items-center gap-2 p-2 rounded-card border text-left transition-all text-xs ${
+                                checked
+                                  ? 'border-outsail-teal bg-outsail-teal/5 text-outsail-navy font-medium'
+                                  : 'border-outsail-gray-200 text-outsail-gray-600 hover:border-outsail-teal/40'
+                              }`}
+                            >
+                              <div className={`w-3.5 h-3.5 rounded flex-shrink-0 flex items-center justify-center border transition-colors ${checked ? 'bg-outsail-teal border-outsail-teal' : 'border-outsail-gray-300'}`}>
+                                {checked && (
+                                  <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className="leading-tight">{m}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Notes */}
+                    <div className="space-y-1.5">
+                      <label className="block text-label text-outsail-navy">Notes</label>
+                      <textarea
+                        value={draftNotes}
+                        onChange={(e) => setDraftNotes(e.target.value)}
+                        placeholder="Sub-functions, contract details, integration notes…"
+                        rows={3}
+                        className="w-full px-3 py-2 border border-outsail-gray-200 rounded-card text-sm text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+              </>
             )}
 
             {moduleError && (
@@ -474,11 +530,7 @@ export function TechStackCanvas({
               {moduleSaving ? <><Spinner /> Saving…</> : 'Save'}
             </button>
             <DialogClose asChild>
-              <button
-                type="button"
-                disabled={moduleSaving}
-                className="px-4 py-2 border border-outsail-gray-200 text-outsail-gray-600 rounded-card text-label hover:border-outsail-navy transition-colors"
-              >
+              <button type="button" disabled={moduleSaving} className="px-4 py-2 border border-outsail-gray-200 text-outsail-gray-600 rounded-card text-label hover:border-outsail-navy transition-colors">
                 Cancel
               </button>
             </DialogClose>
