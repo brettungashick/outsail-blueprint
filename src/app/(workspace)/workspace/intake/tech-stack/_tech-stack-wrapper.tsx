@@ -32,7 +32,6 @@ interface TechStackWrapperProps {
   projectId: string
   initialSystems: TechStackSystemRow[]
   initialIntegrations: ParsedIntegration[]
-  hasExistingData: boolean
 }
 
 interface PointSolutionData {

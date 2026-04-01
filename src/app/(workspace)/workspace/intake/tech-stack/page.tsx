@@ -123,8 +123,6 @@ export default async function TechStackIntakePage() {
     quality: i.integration_quality as 'fully_integrated' | 'mostly_automated' | 'partially_automated' | 'fully_manual',
   }))
 
-  const hasData = parsedSystems.length > 0
-
   return (
     <div className="space-y-8">
       <IntakeStepper currentStep={2} steps={INTAKE_STEPS} />
@@ -140,7 +138,6 @@ export default async function TechStackIntakePage() {
         projectId={projectId}
         initialSystems={parsedSystems}
         initialIntegrations={parsedIntegrations}
-        hasExistingData={hasData}
       />
     </div>
   )

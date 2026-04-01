@@ -1,13 +1,12 @@
 'use client'
 
 import React, { useEffect, useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Loader2, XCircle } from 'lucide-react'
 
 type VerifyState = 'verifying' | 'error'
 
 function VerifyContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [state, setState] = useState<VerifyState>('verifying')
   const [errorMessage, setErrorMessage] = useState('')
@@ -21,8 +20,9 @@ function VerifyContent() {
       return
     }
 
-    router.push(`/api/auth/verify?token=${encodeURIComponent(token)}`)
-  }, [searchParams, router])
+    // Full browser navigation so the server's Set-Cookie + redirect are handled correctly
+    window.location.href = `/api/auth/verify?token=${encodeURIComponent(token)}`
+  }, [searchParams])
 
   if (state === 'error') {
     return (

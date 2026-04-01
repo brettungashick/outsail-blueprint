@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, ClipboardList, Layers, Map, FileOutput, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Layers, MessageCircle, Map, FileOutput, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -15,11 +15,12 @@ interface WorkspaceSidebarProps {
 }
 
 const NAV_ITEMS = [
-  { label: 'Overview', href: '/workspace', icon: LayoutDashboard, exact: true },
-  { label: 'Intake', href: '/workspace/intake', icon: ClipboardList, exact: false },
-  { label: 'Tech Stack', href: '/workspace/tech-stack', icon: Layers, exact: false },
-  { label: 'Blueprint', href: '/workspace/blueprint', icon: Map, exact: false },
-  { label: 'Outputs', href: '/workspace/outputs', icon: FileOutput, exact: false },
+  { label: 'Overview',   href: '/workspace',                   icon: LayoutDashboard, exact: true,  disabled: false },
+  { label: 'Intake',     href: '/workspace/intake',            icon: ClipboardList,   exact: true,  disabled: false },
+  { label: 'Tech Stack', href: '/workspace/intake/tech-stack', icon: Layers,          exact: false, disabled: false },
+  { label: 'Discovery',  href: '/workspace/intake/discovery',  icon: MessageCircle,   exact: false, disabled: false },
+  { label: 'Blueprint',  href: null,                           icon: Map,             exact: false, disabled: true  },
+  { label: 'Outputs',    href: null,                           icon: FileOutput,      exact: false, disabled: true  },
 ]
 
 const STORAGE_KEY = 'outsail_workspace_sidebar_collapsed'
@@ -117,14 +118,37 @@ export function WorkspaceSidebar({ userEmail = '', userName, companyName }: Work
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon
-            const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+            const isActive = item.href
+              ? (item.exact ? pathname === item.href : pathname.startsWith(item.href))
+              : false
+
+            if (item.disabled) {
+              // Phase 2 — show as non-clickable with lock indicator
+              const inner = isCollapsed ? (
+                <Tooltip key={`disabled-${item.label}`}>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center justify-center w-full h-10 rounded-md text-white/25 cursor-not-allowed">
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.label} — Coming soon</TooltipContent>
+                </Tooltip>
+              ) : (
+                <div key={`disabled-${item.label}`} className="flex items-center gap-3 w-full h-10 px-3 rounded-md text-white/25 cursor-not-allowed text-sm font-medium">
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                  <span className="ml-auto text-[10px] text-white/20 font-normal">soon</span>
+                </div>
+              )
+              return inner
+            }
 
             if (isCollapsed) {
               return (
                 <Tooltip key={item.href}>
                   <TooltipTrigger asChild>
                     <Link
-                      href={item.href}
+                      href={item.href!}
                       className={cn(
                         'flex items-center justify-center w-full h-10 rounded-md transition-colors',
                         isActive ? 'bg-outsail-teal text-white' : 'text-white/60 hover:text-white hover:bg-white/10'
@@ -141,7 +165,7 @@ export function WorkspaceSidebar({ userEmail = '', userName, companyName }: Work
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={item.href!}
                 className={cn(
                   'flex items-center gap-3 w-full h-10 px-3 rounded-md transition-colors text-sm font-medium',
                   isActive ? 'bg-outsail-teal text-white' : 'text-white/60 hover:text-white hover:bg-white/10'

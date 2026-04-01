@@ -304,12 +304,7 @@ function OverviewTab({ project, blueprintSections }: ProjectTabsProps) {
                   {SECTION_STATUS_LABELS[section.status]}
                 </p>
 
-                <Link
-                  href={`/dashboard/projects/${section.id}/sections/${section.section_key}`}
-                  className="text-xs font-medium text-outsail-teal hover:text-outsail-teal-dark transition-colors"
-                >
-                  Open →
-                </Link>
+                <span className="text-xs text-outsail-gray-600 italic">Available in Phase 2</span>
               </div>
             ))}
           </div>

@@ -198,10 +198,10 @@ export default async function WorkspacePage() {
                 </p>
               </div>
               <Link
-                href="/workspace/chat"
+                href="/workspace/intake/discovery"
                 className="flex-shrink-0 inline-flex items-center gap-2 h-10 px-5 rounded-md text-sm font-semibold text-white bg-outsail-navy hover:bg-outsail-navy/90 transition-colors"
               >
-                Blueprint Assistant →
+                Continue →
               </Link>
             </div>
           )}
