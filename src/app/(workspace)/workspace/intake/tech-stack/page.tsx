@@ -75,10 +75,24 @@ export default async function TechStackIntakePage() {
     } catch { /* empty */ }
 
     let ratings = { admin: 3, employee: 3, service: 3 }
+    let integrationDirection: 'to_primary' | 'from_primary' | 'bidirectional' = 'bidirectional'
+    let vendorNotes = ''
+    let alsoCoversLabels: string[] = []
+    let isCustom = false
     try {
       if (s.notes) {
-        const parsed = JSON.parse(s.notes) as { ratings?: typeof ratings }
+        const parsed = JSON.parse(s.notes) as {
+          ratings?: typeof ratings
+          integrationDirection?: 'to_primary' | 'from_primary' | 'bidirectional'
+          vendorNotes?: string
+          alsoCoversLabels?: string[]
+          isCustom?: boolean
+        }
         if (parsed.ratings) ratings = parsed.ratings
+        if (parsed.integrationDirection) integrationDirection = parsed.integrationDirection
+        if (parsed.vendorNotes) vendorNotes = parsed.vendorNotes
+        if (Array.isArray(parsed.alsoCoversLabels)) alsoCoversLabels = parsed.alsoCoversLabels
+        if (parsed.isCustom !== undefined) isCustom = parsed.isCustom
       }
     } catch { /* empty */ }
 
@@ -91,6 +105,10 @@ export default async function TechStackIntakePage() {
       modules_used: modules,
       ratings,
       experience_rating: s.experience_rating,
+      integrationDirection,
+      vendorNotes,
+      alsoCoversLabels,
+      isCustom,
     }
   })
 

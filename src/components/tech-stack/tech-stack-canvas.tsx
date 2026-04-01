@@ -79,8 +79,9 @@ export interface TechStackCanvasProps {
   projectId: string
   initialPrimaryVendor?: string
   initialCoveredModules?: string[]
-  /** Pre-loaded point solutions keyed by module label */
-  initialPointSolutions?: Record<string, PointSolutionData>
+  /** Pre-loaded point solutions keyed by module label (multiple per module allowed) */
+  initialPointSolutions?: Record<string, PointSolutionData[]>
+  initialCustomModules?: string[]
   onComplete?: () => void
 }
 
@@ -120,12 +121,13 @@ export function TechStackCanvas({
   initialPrimaryVendor = '',
   initialCoveredModules = [],
   initialPointSolutions = {},
+  initialCustomModules = [],
   onComplete,
 }: TechStackCanvasProps) {
   // ── Persistent state
   const [primaryVendor, setPrimaryVendor] = useState(initialPrimaryVendor)
   const [coveredModules, setCoveredModules] = useState<string[]>(initialCoveredModules)
-  const [pointSolutions, setPointSolutions] = useState<Record<string, PointSolutionData>>(initialPointSolutions)
+  const [pointSolutions, setPointSolutions] = useState<Record<string, PointSolutionData[]>>(initialPointSolutions)
 
   // ── Primary vendor modal draft state
   const [showPrimaryModal, setShowPrimaryModal] = useState(false)
@@ -147,7 +149,7 @@ export function TechStackCanvas({
   const [moduleError, setModuleError] = useState<string | null>(null)
 
   // ── Add custom module state
-  const [customModules, setCustomModules] = useState<string[]>([])
+  const [customModules, setCustomModules] = useState<string[]>(initialCustomModules)
   const [showAddModule, setShowAddModule] = useState(false)
   const [newModuleName, setNewModuleName] = useState('')
 
@@ -159,8 +161,8 @@ export function TechStackCanvas({
 
   // ── Build PUT payload ─────────────────────────────────────────────────────
 
-  function buildModulesPayload(overrides: Record<string, PointSolutionData | null> = {}) {
-    const merged: Record<string, PointSolutionData> = { ...pointSolutions }
+  function buildModulesPayload(overrides: Record<string, PointSolutionData[] | null> = {}) {
+    const merged: Record<string, PointSolutionData[]> = { ...pointSolutions }
     for (const [label, val] of Object.entries(overrides)) {
       if (val === null) {
         delete merged[label]
@@ -168,22 +170,24 @@ export function TechStackCanvas({
         merged[label] = val
       }
     }
-    return Object.entries(merged)
-      .filter(([, d]) => d.vendor.trim())
-      .map(([label, d]) => ({
-        id: label.toLowerCase().replace(/[^a-z0-9]/g, '_'),
-        label,
-        isCustom: false,
-        canvasX: 0,
-        canvasY: 0,
-        vendor: d.vendor.trim(),
-        vendorNotes: d.notes,
-        coveredByPrimary: false,
-        ratings: d.ratings,
-        integrationQuality: d.integrationQuality,
-        integrationDirection: d.integrationDirection,
-        alsoCoversLabels: d.alsoCovers,
-      }))
+    return Object.entries(merged).flatMap(([label, solutions]) =>
+      solutions
+        .filter((d) => d.vendor.trim())
+        .map((d, idx) => ({
+          id: `${label.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${idx}`,
+          label,
+          isCustom: customModules.includes(label),
+          canvasX: 0,
+          canvasY: 0,
+          vendor: d.vendor.trim(),
+          vendorNotes: d.notes,
+          coveredByPrimary: false,
+          ratings: d.ratings,
+          integrationQuality: d.integrationQuality,
+          integrationDirection: d.integrationDirection,
+          alsoCoversLabels: d.alsoCovers,
+        }))
+    )
   }
 
   async function putTechStack(pv: string, cm: string[], modulesPayload: ReturnType<typeof buildModulesPayload>) {
@@ -203,7 +207,7 @@ export function TechStackCanvas({
   // ── Module modal open ─────────────────────────────────────────────────────
 
   function openModuleModal(label: string) {
-    const existing = pointSolutions[label]
+    const existing = (pointSolutions[label] ?? [])[0]
     setDraftHandledByPrimary(coveredModules.includes(label))
     setDraftPointVendor(existing?.vendor ?? '')
     setDraftRatings(existing?.ratings ?? DEFAULT_RATINGS)
@@ -230,7 +234,7 @@ export function TechStackCanvas({
 
     try {
       let newCoveredModules = coveredModules
-      let overrides: Record<string, PointSolutionData | null> = {}
+      let overrides: Record<string, PointSolutionData[] | null> = {}
 
       if (draftHandledByPrimary) {
         newCoveredModules = coveredModules.includes(activeModule)
@@ -240,13 +244,22 @@ export function TechStackCanvas({
       } else {
         newCoveredModules = coveredModules.filter((m) => m !== activeModule)
         if (draftPointVendor.trim()) {
-          overrides[activeModule] = {
+          const newSolution: PointSolutionData = {
             vendor: draftPointVendor.trim(),
             ratings: draftRatings,
             alsoCovers: draftAlsoCovers,
             notes: draftNotes,
             integrationQuality: draftQuality,
             integrationDirection: draftDirection,
+          }
+          const existing = pointSolutions[activeModule] ?? []
+          const idx = existing.findIndex((s) => s.vendor === draftPointVendor.trim())
+          if (idx >= 0) {
+            const updated = [...existing]
+            updated[idx] = newSolution
+            overrides[activeModule] = updated
+          } else {
+            overrides[activeModule] = [...existing, newSolution]
           }
         } else {
           overrides[activeModule] = null
@@ -262,13 +275,22 @@ export function TechStackCanvas({
         if (draftHandledByPrimary || !draftPointVendor.trim()) {
           delete next[activeModule]
         } else {
-          next[activeModule] = {
+          const newSolution: PointSolutionData = {
             vendor: draftPointVendor.trim(),
             ratings: draftRatings,
             alsoCovers: draftAlsoCovers,
             notes: draftNotes,
             integrationQuality: draftQuality,
             integrationDirection: draftDirection,
+          }
+          const existing = prev[activeModule] ?? []
+          const idx = existing.findIndex((s) => s.vendor === draftPointVendor.trim())
+          if (idx >= 0) {
+            const updated = [...existing]
+            updated[idx] = newSolution
+            next[activeModule] = updated
+          } else {
+            next[activeModule] = [...existing, newSolution]
           }
         }
         return next
@@ -395,12 +417,13 @@ export function TechStackCanvas({
           {allModules.map((label, i) => {
             const pos = satPos(i, allModules.length)
             const covered = coveredModules.includes(label)
-            const psData = pointSolutions[label]
-            if (!covered && !psData) return null   // gap modules: no line
+            const psSolutions = pointSolutions[label]
+            const firstPs = psSolutions?.[0]
+            if (!covered && !firstPs) return null   // gap modules: no line
 
-            const quality = psData?.integrationQuality ?? 'fully_integrated'
-            const direction = psData?.integrationDirection ?? 'bidirectional'
-            const color = psData
+            const quality = firstPs?.integrationQuality ?? 'fully_integrated'
+            const direction = firstPs?.integrationDirection ?? 'bidirectional'
+            const color = firstPs
               ? (QUALITY_OPTIONS.find((q) => q.value === quality)?.color ?? '#1D9E75')
               : '#1D9E75'
 
@@ -415,9 +438,9 @@ export function TechStackCanvas({
             const x2 = CX - ux * (PRIMARY_R + 2)
             const y2 = CY - uy * (PRIMARY_R + 2)
 
-            const markerEnd = psData && (direction === 'to_primary' || direction === 'bidirectional')
+            const markerEnd = firstPs && (direction === 'to_primary' || direction === 'bidirectional')
               ? `url(#arrow-end-${quality})` : undefined
-            const markerStart = psData && (direction === 'from_primary' || direction === 'bidirectional')
+            const markerStart = firstPs && (direction === 'from_primary' || direction === 'bidirectional')
               ? `url(#arrow-start-${quality})` : undefined
 
             return (
@@ -435,8 +458,10 @@ export function TechStackCanvas({
           {allModules.map((label, i) => {
             const pos = satPos(i, allModules.length)
             const covered = coveredModules.includes(label)
-            const psData = pointSolutions[label]
-            const isGap = primaryVendor && !covered && !psData
+            const psSolutions = pointSolutions[label]
+            const firstPs = psSolutions?.[0]
+            const psCount = psSolutions?.length ?? 0
+            const isGap = primaryVendor && !covered && psCount === 0
             const lines = splitLabel(label)
             const lineSpacing = 14
 
@@ -445,7 +470,7 @@ export function TechStackCanvas({
             let sw = 1.5
             let dash: string | undefined = '7,5'
             if (covered)  { fill = '#E1F5EE'; stroke = '#1D9E75'; sw = 2.5; dash = undefined }
-            else if (psData)  { fill = '#EEF2FF'; stroke = '#4338CA'; sw = 2;   dash = undefined }
+            else if (psCount > 0) { fill = '#EEF2FF'; stroke = '#4338CA'; sw = 2;   dash = undefined }
             else if (isGap)   { fill = '#FFF5F0'; stroke = '#D85A30'; sw = 1.5; dash = '7,5' }
 
             return (
@@ -460,14 +485,20 @@ export function TechStackCanvas({
                   </>
                 )}
 
-                {psData && !covered ? (
+                {psCount > 0 && !covered ? (
                   <>
                     <text x={pos.x} y={pos.y - 8} textAnchor="middle" fontSize={9} fontFamily="Inter, sans-serif" fontWeight={700} fill="#4338CA">
-                      {psData.vendor.length > 13 ? psData.vendor.slice(0, 12) + '…' : psData.vendor}
+                      {(firstPs?.vendor ?? '').length > 13 ? (firstPs?.vendor ?? '').slice(0, 12) + '…' : (firstPs?.vendor ?? '')}
                     </text>
                     {lines.map((line, li) => (
                       <text key={li} x={pos.x} y={pos.y + 7 + li * 11} textAnchor="middle" fontSize={8} fontFamily="Inter, sans-serif" fill="#9CA3AF">{line}</text>
                     ))}
+                    {psCount > 1 && (
+                      <>
+                        <circle cx={pos.x + MODULE_R * 0.65} cy={pos.y - MODULE_R * 0.65} r={10} fill="#4338CA" />
+                        <text x={pos.x + MODULE_R * 0.65} y={pos.y - MODULE_R * 0.65 + 4} textAnchor="middle" fontSize={9} fontFamily="Inter, sans-serif" fill="white" fontWeight={700}>+{psCount - 1}</text>
+                      </>
+                    )}
                   </>
                 ) : isGap ? (
                   <>
