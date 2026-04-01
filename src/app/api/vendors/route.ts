@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
   const canBePrimaryParam = searchParams.get('can_be_primary')
   const category = searchParams.get('category')?.toLowerCase() ?? ''
 
+  const t0 = Date.now()
+
   try {
     // Start with all active vendors
     let rows = await db
@@ -18,6 +20,8 @@ export async function GET(request: NextRequest) {
       .from(vendors)
       .where(eq(vendors.is_active, true))
       .all()
+
+    console.log(`[/api/vendors] total active rows: ${rows.length} (${Date.now() - t0}ms)`)
 
     // Filter by can_be_primary
     if (canBePrimaryParam === 'true') {
@@ -48,6 +52,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Limit to 50 results
+    rows = rows.slice(0, 50)
+
     // Parse suggested_categories back to arrays for response
     const result = rows.map((v) => ({
       id: v.id,
@@ -62,9 +69,9 @@ export async function GET(request: NextRequest) {
         : [],
     }))
 
-    return NextResponse.json({ vendors: result })
+    return NextResponse.json({ vendors: result, total: result.length })
   } catch (err) {
     console.error('[/api/vendors] Error:', err)
-    return NextResponse.json({ error: 'Failed to fetch vendors' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch vendors', vendors: [] }, { status: 500 })
   }
 }
