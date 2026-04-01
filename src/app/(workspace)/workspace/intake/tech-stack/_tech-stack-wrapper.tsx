@@ -19,6 +19,7 @@ interface TechStackSystemRow {
   vendorNotes?: string
   alsoCoversLabels?: string[]
   isCustom?: boolean
+  customModules?: string[]
 }
 
 interface ParsedIntegration {
@@ -80,11 +81,8 @@ export function TechStackBuilderWrapper({
     initialPointSolutions[primaryModuleLabel].push(solution)
   }
 
-  // Reconstruct custom modules (non-standard modules)
-  const initialCustomModules = initialSystems
-    .filter((s) => !s.is_primary && s.isCustom)
-    .map((s) => s.modules_used[0])
-    .filter((label): label is string => Boolean(label))
+  // Custom modules are stored in the primary system's notes
+  const initialCustomModules = primary?.customModules ?? []
 
   return (
     <TechStackCanvas

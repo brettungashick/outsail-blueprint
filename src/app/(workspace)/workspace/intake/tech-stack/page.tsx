@@ -79,6 +79,7 @@ export default async function TechStackIntakePage() {
     let vendorNotes = ''
     let alsoCoversLabels: string[] = []
     let isCustom = false
+    let customModules: string[] = []
     try {
       if (s.notes) {
         const parsed = JSON.parse(s.notes) as {
@@ -87,12 +88,14 @@ export default async function TechStackIntakePage() {
           vendorNotes?: string
           alsoCoversLabels?: string[]
           isCustom?: boolean
+          customModules?: string[]
         }
         if (parsed.ratings) ratings = parsed.ratings
         if (parsed.integrationDirection) integrationDirection = parsed.integrationDirection
         if (parsed.vendorNotes) vendorNotes = parsed.vendorNotes
         if (Array.isArray(parsed.alsoCoversLabels)) alsoCoversLabels = parsed.alsoCoversLabels
         if (parsed.isCustom !== undefined) isCustom = parsed.isCustom
+        if (Array.isArray(parsed.customModules)) customModules = parsed.customModules
       }
     } catch { /* empty */ }
 
@@ -109,6 +112,7 @@ export default async function TechStackIntakePage() {
       vendorNotes,
       alsoCoversLabels,
       isCustom,
+      customModules,
     }
   })
 

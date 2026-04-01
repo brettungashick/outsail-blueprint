@@ -82,6 +82,7 @@ export interface TechStackCanvasProps {
   /** Pre-loaded point solutions keyed by module label (multiple per module allowed) */
   initialPointSolutions?: Record<string, PointSolutionData[]>
   initialCustomModules?: string[]
+  readOnly?: boolean
   onComplete?: () => void
 }
 
@@ -122,6 +123,7 @@ export function TechStackCanvas({
   initialCoveredModules = [],
   initialPointSolutions = {},
   initialCustomModules = [],
+  readOnly = false,
   onComplete,
 }: TechStackCanvasProps) {
   // ── Persistent state
@@ -190,7 +192,7 @@ export function TechStackCanvas({
     )
   }
 
-  async function putTechStack(pv: string, cm: string[], modulesPayload: ReturnType<typeof buildModulesPayload>) {
+  async function putTechStack(pv: string, cm: string[], modulesPayload: ReturnType<typeof buildModulesPayload>, latestCustomModules: string[] = customModules) {
     const res = await fetch(`/api/projects/${projectId}/tech-stack`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -199,6 +201,7 @@ export function TechStackCanvas({
         primaryModules: cm,
         primaryRatings: { admin: 3, employee: 3, service: 3 },
         modules: modulesPayload,
+        customModules: latestCustomModules,
       }),
     })
     if (!res.ok) throw new Error('Failed to save. Please try again.')
@@ -305,12 +308,20 @@ export function TechStackCanvas({
 
   // ── Add custom module ─────────────────────────────────────────────────────
 
-  function handleAddModule() {
+  async function handleAddModule() {
     const name = newModuleName.trim()
     if (!name || allModules.includes(name)) return
-    setCustomModules((prev) => [...prev, name])
+    const updated = [...customModules, name]
+    setCustomModules(updated)
     setNewModuleName('')
     setShowAddModule(false)
+    if (primaryVendor) {
+      try {
+        await putTechStack(primaryVendor, coveredModules, buildModulesPayload(), updated)
+      } catch {
+        // Non-fatal: module is visible on canvas; will be saved on next interaction
+      }
+    }
   }
 
   // ── Download PNG ──────────────────────────────────────────────────────────
@@ -474,7 +485,7 @@ export function TechStackCanvas({
             else if (isGap)   { fill = '#FFF5F0'; stroke = '#D85A30'; sw = 1.5; dash = '7,5' }
 
             return (
-              <g key={label} onClick={() => openModuleModal(label)} style={{ cursor: 'pointer' }} role="button" aria-label={`Configure ${label}`}>
+              <g key={label} onClick={readOnly ? undefined : () => openModuleModal(label)} style={{ cursor: readOnly ? 'default' : 'pointer' }} role={readOnly ? undefined : 'button'} aria-label={readOnly ? label : `Configure ${label}`}>
                 <circle cx={pos.x} cy={pos.y} r={MODULE_R + 6} fill="transparent" />
                 <circle cx={pos.x} cy={pos.y} r={MODULE_R} fill={fill} stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
 
@@ -521,7 +532,7 @@ export function TechStackCanvas({
           })}
 
           {/* Primary circle */}
-          <g onClick={openPrimaryModal} style={{ cursor: 'pointer' }} role="button" aria-label="Edit primary vendor">
+          <g onClick={readOnly ? undefined : openPrimaryModal} style={{ cursor: readOnly ? 'default' : 'pointer' }} role={readOnly ? undefined : 'button'} aria-label={readOnly ? 'Primary vendor' : 'Edit primary vendor'}>
             <circle cx={CX} cy={CY} r={PRIMARY_R + 6} fill="transparent" />
             <circle cx={CX} cy={CY} r={PRIMARY_R} fill="white" stroke={primaryVendor ? '#1B3A5C' : '#D3D1C7'} strokeWidth={primaryVendor ? 3 : 2} strokeDasharray={primaryVendor ? undefined : '12,7'} />
             {primaryVendor ? (
@@ -568,7 +579,7 @@ export function TechStackCanvas({
       {/* ── Action bar: Add Module / Download PNG / Continue ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          {showAddModule ? (
+          {!readOnly && (showAddModule ? (
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -596,7 +607,7 @@ export function TechStackCanvas({
               </svg>
               Add Module
             </button>
-          )}
+          ))}
           <button
             type="button"
             onClick={downloadPng}
@@ -608,7 +619,7 @@ export function TechStackCanvas({
             Download PNG
           </button>
         </div>
-        {primaryVendor && onComplete && (
+        {!readOnly && primaryVendor && onComplete && (
           <button
             type="button"
             onClick={onComplete}
@@ -620,7 +631,7 @@ export function TechStackCanvas({
       </div>
 
       {/* ── Module modal ── */}
-      <Dialog open={activeModule !== null} onOpenChange={(open) => { if (!open && !moduleSaving) setActiveModule(null) }}>
+      <Dialog open={!readOnly && activeModule !== null} onOpenChange={(open) => { if (!open && !moduleSaving) setActiveModule(null) }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <div>
@@ -814,7 +825,7 @@ export function TechStackCanvas({
       </Dialog>
 
       {/* ── Primary vendor modal ── */}
-      {showPrimaryModal && (
+      {!readOnly && showPrimaryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !saving && setShowPrimaryModal(false)} />
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg z-10 overflow-hidden">

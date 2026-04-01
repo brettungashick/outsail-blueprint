@@ -117,6 +117,7 @@ export async function PUT(
     primaryX?: number
     primaryY?: number
     allModulePositions?: Record<string, { x: number; y: number }>
+    customModules?: string[]
     modules?: Array<{
       id: string
       label: string
@@ -163,6 +164,7 @@ export async function PUT(
         canvasX: body.primaryX ?? null,
         canvasY: body.primaryY ?? null,
         allModulePositions: body.allModulePositions ?? {},
+        customModules: body.customModules ?? [],
       }),
     })
     .returning()
