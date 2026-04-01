@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       const magicLinkUrl = `${appUrl}/api/auth/verify?token=${encodeURIComponent(token)}`
 
       await resend.emails.send({
-        from: 'OutSail Blueprint <noreply@outsail.co>',
+        from: 'OutSail Blueprint <noreply@hrisblueprint.com>',
         to: normalizedEmail,
         subject: 'Your HR Technology Discovery is Ready',
         react: MagicLinkEmail({

@@ -9,7 +9,7 @@ import { CompanyProfileForm } from './_company-profile-form'
 
 export const dynamic = 'force-dynamic'
 
-const INTAKE_STEPS = ['Company Profile', 'Tech Stack', 'Requirements', 'Processes', 'Review']
+const INTAKE_STEPS = ['Company Profile', 'Tech Stack', 'Discovery Chat', 'Summary Review']
 
 interface CompanyProfileData {
   __v: number

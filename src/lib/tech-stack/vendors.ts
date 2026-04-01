@@ -41,6 +41,25 @@ export const VENDOR_DEFAULT_MODULES: Record<string, string[]> = {
   'Infor CloudSuite HCM': ['Core HR', 'Payroll', 'Benefits Admin', 'Time & Attendance', 'Onboarding', 'Performance', 'Compensation'],
 }
 
+// Category → system_type mapping for DB storage
+export const CATEGORY_TO_SYSTEM_TYPE: Record<string, string> = {
+  'Payroll': 'payroll',
+  'Benefits Admin': 'benefits',
+  'Time & Attendance': 'scheduling',
+  'Onboarding': 'other',
+  'Core HR': 'primary_hris',
+  'Performance': 'performance',
+  'Compensation': 'other',
+  'Learning/LMS': 'lms',
+  'Recruiting/ATS': 'ats',
+  'AI': 'point_solution',
+  'Expense': 'point_solution',
+  'SSO': 'point_solution',
+  'ERP/General Ledger': 'point_solution',
+  'Global Payroll': 'payroll',
+  'Custom': 'other',
+}
+
 // Categories typically covered by add-on point solutions (not primary HCM)
 export const POINT_SOLUTION_CATEGORIES = [
   'AI',

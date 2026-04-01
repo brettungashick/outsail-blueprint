@@ -2,8 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { users, projects, projectMembers } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { users, projects, projectMembers, techStackSystems } from '@/lib/db/schema'
+import { eq, and } from 'drizzle-orm'
 import { WorkspaceSidebar } from '@/components/workspace/workspace-sidebar'
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
@@ -18,6 +18,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   let userEmail = session.email
   let userName: string | undefined
   let companyName: string | undefined
+  let techStackComplete = false
 
   try {
     const user = await db
@@ -31,7 +32,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       userName = user.name ?? undefined
     }
 
-    // Find the client's first project for the company name
+    // Find the client's first project for the company name + tech stack check
     const membership = await db
       .select({ project_id: projectMembers.project_id })
       .from(projectMembers)
@@ -46,6 +47,20 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         .get()
 
       companyName = project?.client_company_name ?? undefined
+
+      // Tech stack is complete if there's at least one primary system
+      const primarySystem = await db
+        .select({ id: techStackSystems.id })
+        .from(techStackSystems)
+        .where(
+          and(
+            eq(techStackSystems.project_id, membership.project_id),
+            eq(techStackSystems.is_primary, true)
+          )
+        )
+        .get()
+
+      techStackComplete = !!primarySystem
     }
   } catch {
     // Non-fatal
@@ -57,6 +72,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         userEmail={userEmail}
         userName={userName}
         companyName={companyName}
+        techStackComplete={techStackComplete}
       />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-content mx-auto px-6 py-8">{children}</div>

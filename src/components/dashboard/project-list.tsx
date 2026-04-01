@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { Search, FolderKanban, Plus, Clock, Users, ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, FolderKanban, Plus, Clock, ArrowRight, Trash2, AlertTriangle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -83,7 +84,10 @@ function formatRelativeDate(date: Date | null | undefined): string {
 }
 
 export function DashboardProjectList({ initialProjects }: DashboardProjectListProps) {
+  const router = useRouter()
   const [search, setSearch] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const filtered = initialProjects.filter((p) => {
     if (!search) return true
@@ -93,6 +97,19 @@ export function DashboardProjectList({ initialProjects }: DashboardProjectListPr
       p.client_company_name.toLowerCase().includes(q)
     )
   })
+
+  async function handleDelete(projectId: string) {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setConfirmDeleteId(null)
+        router.refresh()
+      }
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -156,55 +173,79 @@ export function DashboardProjectList({ initialProjects }: DashboardProjectListPr
                     | 'enterprise')
                 : null
 
-              const lastUpdated = formatRelativeDate(
-                project.updated_at ?? project.created_at
-              )
+              const lastUpdated = formatRelativeDate(project.updated_at ?? project.created_at)
+              const isConfirming = confirmDeleteId === project.id
 
               return (
-                <div
-                  key={project.id}
-                  className="flex items-center justify-between p-4 hover:bg-outsail-gray-50 transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <p className="text-sm font-semibold text-outsail-navy">
-                        {project.client_company_name}
-                      </p>
-                      <p className="text-xs text-outsail-gray-600">
-                        &middot; {project.name}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={statusVariant}>
-                        {STATUS_LABELS[project.status ?? 'intake'] ?? project.status}
-                      </Badge>
-                      {tierVariant && (
-                        <Badge variant={tierVariant}>
-                          {TIER_LABELS[project.tier ?? ''] ?? project.tier}
+                <div key={project.id}>
+                  <div className="flex items-center justify-between p-4 hover:bg-outsail-gray-50 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="text-sm font-semibold text-outsail-navy">
+                          {project.client_company_name}
+                        </p>
+                        <p className="text-xs text-outsail-gray-600">
+                          &middot; {project.name}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant={statusVariant}>
+                          {STATUS_LABELS[project.status ?? 'intake'] ?? project.status}
                         </Badge>
-                      )}
-                      {project.headcount && (
+                        {tierVariant && (
+                          <Badge variant={tierVariant}>
+                            {TIER_LABELS[project.tier ?? ''] ?? project.tier}
+                          </Badge>
+                        )}
                         <span className="flex items-center gap-1 text-xs text-outsail-gray-600">
-                          <Users className="w-3 h-3" />
-                          {project.headcount.toLocaleString()} employees
+                          <Clock className="w-3 h-3" />
+                          {lastUpdated}
                         </span>
-                      )}
-                      <span className="flex items-center gap-1 text-xs text-outsail-gray-600">
-                        <Clock className="w-3 h-3" />
-                        {lastUpdated}
-                      </span>
-                      <span className="text-xs text-outsail-gray-600">
-                        0% complete
-                      </span>
+                      </div>
+                    </div>
+
+                    <div className="ml-4 flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => setConfirmDeleteId(isConfirming ? null : project.id)}
+                        className="h-8 w-8 flex items-center justify-center rounded-md text-outsail-gray-600 hover:text-outsail-coral hover:bg-red-50 transition-colors"
+                        aria-label="Delete project"
+                        title="Delete project"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <Link
+                        href={`/dashboard/projects/${project.id}`}
+                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium text-outsail-teal border border-outsail-teal bg-transparent hover:bg-outsail-teal-light transition-colors"
+                      >
+                        Open
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
                     </div>
                   </div>
-                  <Link
-                    href={`/dashboard/projects/${project.id}`}
-                    className="ml-4 flex-shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium text-outsail-teal border border-outsail-teal bg-transparent hover:bg-outsail-teal-light transition-colors"
-                  >
-                    Open
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+
+                  {/* Inline delete confirmation */}
+                  {isConfirming && (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-t border-red-100">
+                      <AlertTriangle className="w-4 h-4 text-outsail-coral flex-shrink-0" />
+                      <p className="text-sm text-outsail-slate flex-1">
+                        Delete <strong>{project.client_company_name}</strong>? This cannot be undone.
+                      </p>
+                      <button
+                        onClick={() => handleDelete(project.id)}
+                        disabled={deleting}
+                        className="h-8 px-3 rounded-md text-xs font-semibold text-white bg-outsail-coral hover:bg-red-700 transition-colors disabled:opacity-60"
+                      >
+                        {deleting ? 'Deleting…' : 'Delete'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        disabled={deleting}
+                        className="h-8 px-3 rounded-md text-xs font-medium text-outsail-gray-600 hover:text-outsail-navy border border-outsail-gray-200 hover:border-outsail-gray-600 transition-colors disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })}

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // Send email via Resend
     const { error } = await resend.emails.send({
-      from: 'OutSail Blueprint <noreply@outsail.co>',
+      from: 'OutSail Blueprint <noreply@hrisblueprint.com>',
       to: normalizedEmail,
       subject: 'Sign in to OutSail Blueprint',
       react: MagicLinkEmail({ magicLinkUrl, userEmail: normalizedEmail }),

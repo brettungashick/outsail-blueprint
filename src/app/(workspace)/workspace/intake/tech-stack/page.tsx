@@ -9,7 +9,7 @@ import { TechStackBuilderWrapper } from './_tech-stack-wrapper'
 
 export const dynamic = 'force-dynamic'
 
-const INTAKE_STEPS = ['Company Profile', 'Tech Stack', 'Requirements', 'Processes', 'Review']
+const INTAKE_STEPS = ['Company Profile', 'Tech Stack', 'Discovery Chat', 'Summary Review']
 
 export default async function TechStackIntakePage() {
   const cookieStore = cookies()
@@ -75,10 +75,27 @@ export default async function TechStackIntakePage() {
     } catch { /* empty */ }
 
     let ratings = { admin: 3, employee: 3, service: 3 }
+    let integrationDirection: 'to_primary' | 'from_primary' | 'bidirectional' = 'bidirectional'
+    let vendorNotes = ''
+    let alsoCoversLabels: string[] = []
+    let isCustom = false
+    let customModules: string[] = []
     try {
       if (s.notes) {
-        const parsed = JSON.parse(s.notes) as { ratings?: typeof ratings }
+        const parsed = JSON.parse(s.notes) as {
+          ratings?: typeof ratings
+          integrationDirection?: 'to_primary' | 'from_primary' | 'bidirectional'
+          vendorNotes?: string
+          alsoCoversLabels?: string[]
+          isCustom?: boolean
+          customModules?: string[]
+        }
         if (parsed.ratings) ratings = parsed.ratings
+        if (parsed.integrationDirection) integrationDirection = parsed.integrationDirection
+        if (parsed.vendorNotes) vendorNotes = parsed.vendorNotes
+        if (Array.isArray(parsed.alsoCoversLabels)) alsoCoversLabels = parsed.alsoCoversLabels
+        if (parsed.isCustom !== undefined) isCustom = parsed.isCustom
+        if (Array.isArray(parsed.customModules)) customModules = parsed.customModules
       }
     } catch { /* empty */ }
 
@@ -91,6 +108,11 @@ export default async function TechStackIntakePage() {
       modules_used: modules,
       ratings,
       experience_rating: s.experience_rating,
+      integrationDirection,
+      vendorNotes,
+      alsoCoversLabels,
+      isCustom,
+      customModules,
     }
   })
 
@@ -100,8 +122,6 @@ export default async function TechStackIntakePage() {
     target_id: i.target_system_id,
     quality: i.integration_quality as 'fully_integrated' | 'mostly_automated' | 'partially_automated' | 'fully_manual',
   }))
-
-  const hasData = parsedSystems.length > 0
 
   return (
     <div className="space-y-8">
@@ -118,7 +138,6 @@ export default async function TechStackIntakePage() {
         projectId={projectId}
         initialSystems={parsedSystems}
         initialIntegrations={parsedIntegrations}
-        hasExistingData={hasData}
       />
     </div>
   )
