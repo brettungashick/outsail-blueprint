@@ -77,7 +77,7 @@ export async function sendNotification({
 }): Promise<void> {
   const resend = new Resend(process.env.RESEND_API_KEY)
   await resend.emails.send({
-    from: 'OutSail Blueprint <noreply@outsail.co>',
+    from: 'OutSail Blueprint <noreply@hrisblueprint.com>',
     to,
     subject,
     react: createNotificationEmail({ heading, body, ctaText, ctaUrl }),

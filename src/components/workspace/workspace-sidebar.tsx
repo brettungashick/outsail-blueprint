@@ -12,21 +12,17 @@ interface WorkspaceSidebarProps {
   userEmail?: string
   userName?: string
   companyName?: string
+  techStackComplete?: boolean
 }
-
-const NAV_ITEMS = [
-  { label: 'Overview',   href: '/workspace',                   icon: LayoutDashboard, exact: true,  disabled: false },
-  { label: 'Intake',     href: '/workspace/intake',            icon: ClipboardList,   exact: true,  disabled: false },
-  { label: 'Tech Stack', href: '/workspace/intake/tech-stack', icon: Layers,          exact: false, disabled: false },
-  { label: 'Discovery',  href: '/workspace/intake/discovery',  icon: MessageCircle,   exact: false, disabled: false },
-  { label: 'Summary',    href: '/workspace/intake/summary',    icon: FileText,        exact: false, disabled: false },
-  { label: 'Blueprint',  href: null,                           icon: Map,             exact: false, disabled: true  },
-  { label: 'Outputs',    href: null,                           icon: FileOutput,      exact: false, disabled: true  },
-]
 
 const STORAGE_KEY = 'outsail_workspace_sidebar_collapsed'
 
-export function WorkspaceSidebar({ userEmail = '', userName, companyName }: WorkspaceSidebarProps) {
+export function WorkspaceSidebar({
+  userEmail = '',
+  userName,
+  companyName,
+  techStackComplete = false,
+}: WorkspaceSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
@@ -59,6 +55,17 @@ export function WorkspaceSidebar({ userEmail = '', userName, companyName }: Work
   const initials = getInitials(userName, userEmail)
   const displayName = userName ?? userEmail ?? 'User'
   const isCollapsed = mounted ? collapsed : false
+
+  // Nav item definitions — Discovery and Summary are gated on techStackComplete
+  const NAV_ITEMS = [
+    { label: 'Overview',   href: '/workspace',                   icon: LayoutDashboard, exact: true,  disabled: false,            gated: false },
+    { label: 'Intake',     href: '/workspace/intake',            icon: ClipboardList,   exact: true,  disabled: false,            gated: false },
+    { label: 'Tech Stack', href: '/workspace/intake/tech-stack', icon: Layers,          exact: false, disabled: false,            gated: false },
+    { label: 'Discovery',  href: '/workspace/intake/discovery',  icon: MessageCircle,   exact: false, disabled: !techStackComplete, gated: !techStackComplete },
+    { label: 'Summary',    href: '/workspace/intake/summary',    icon: FileText,        exact: false, disabled: !techStackComplete, gated: !techStackComplete },
+    { label: 'Blueprint',  href: null,                           icon: Map,             exact: false, disabled: true,             gated: false },
+    { label: 'Outputs',    href: null,                           icon: FileOutput,      exact: false, disabled: true,             gated: false },
+  ]
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -123,25 +130,56 @@ export function WorkspaceSidebar({ userEmail = '', userName, companyName }: Work
               ? (item.exact ? pathname === item.href : pathname.startsWith(item.href))
               : false
 
-            if (item.disabled) {
-              // Phase 2 — show as non-clickable with lock indicator
-              const inner = isCollapsed ? (
-                <Tooltip key={`disabled-${item.label}`}>
+            // Gated: tech stack not complete yet — show with lock tooltip
+            if (item.gated) {
+              const tooltipMsg = 'Complete your tech stack first'
+              if (isCollapsed) {
+                return (
+                  <Tooltip key={`gated-${item.label}`}>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-center w-full h-10 rounded-md text-white/25 cursor-not-allowed">
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{tooltipMsg}</TooltipContent>
+                  </Tooltip>
+                )
+              }
+              return (
+                <Tooltip key={`gated-${item.label}`}>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center justify-center w-full h-10 rounded-md text-white/25 cursor-not-allowed">
+                    <div className="flex items-center gap-3 w-full h-10 px-3 rounded-md text-white/25 cursor-not-allowed text-sm font-medium">
                       <Icon className="w-5 h-5 flex-shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                      <span className="ml-auto text-[10px] text-white/20 font-normal">locked</span>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right">{item.label} — Coming soon</TooltipContent>
+                  <TooltipContent side="right">{tooltipMsg}</TooltipContent>
                 </Tooltip>
-              ) : (
+              )
+            }
+
+            // Coming soon (Phase 2+)
+            if (item.disabled) {
+              if (isCollapsed) {
+                return (
+                  <Tooltip key={`disabled-${item.label}`}>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-center w-full h-10 rounded-md text-white/25 cursor-not-allowed">
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{item.label} — Coming soon</TooltipContent>
+                  </Tooltip>
+                )
+              }
+              return (
                 <div key={`disabled-${item.label}`} className="flex items-center gap-3 w-full h-10 px-3 rounded-md text-white/25 cursor-not-allowed text-sm font-medium">
                   <Icon className="w-5 h-5 flex-shrink-0" />
                   <span className="truncate">{item.label}</span>
                   <span className="ml-auto text-[10px] text-white/20 font-normal">soon</span>
                 </div>
               )
-              return inner
             }
 
             if (isCollapsed) {
