@@ -313,13 +313,28 @@ export function TechStackCanvas({
   return (
     <div className="space-y-4">
       {/* ── Canvas ── */}
-      <div className="w-full rounded-xl border border-outsail-gray-200 bg-[#F8F7F4] overflow-hidden">
+      <div className="w-full rounded-xl border border-outsail-gray-200 bg-[#F8F7F4] overflow-auto">
         <svg
-          viewBox={`0 0 ${VB_W} ${VB_H}`}
+          viewBox={`0 0 ${VB_W} ${VB_H + 56}`}
           className="w-full"
-          style={{ maxHeight: 580, display: 'block' }}
+          style={{ minWidth: 600, display: 'block' }}
           aria-label="Tech stack canvas"
+          xmlns="http://www.w3.org/2000/svg"
         >
+          {/* Arrow markers for each quality level + both directions */}
+          <defs>
+            {QUALITY_OPTIONS.map(({ value, color }) => (
+              <marker key={`me-${value}`} id={`arrow-end-${value}`} markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill={color} />
+              </marker>
+            ))}
+            {QUALITY_OPTIONS.map(({ value, color }) => (
+              <marker key={`ms-${value}`} id={`arrow-start-${value}`} markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto-start-reverse">
+                <path d="M0,0 L0,6 L8,3 z" fill={color} />
+              </marker>
+            ))}
+          </defs>
+
           {/* Dot grid */}
           {Array.from({ length: 10 }, (_, row) =>
             Array.from({ length: 16 }, (_, col) => (
@@ -327,18 +342,42 @@ export function TechStackCanvas({
             ))
           )}
 
-          {/* Spoke lines */}
+          {/* Spoke lines — quality-colored with arrowheads for point solutions */}
           {STANDARD_MODULES.map((label, i) => {
             const pos = satPos(i)
             const covered = coveredModules.includes(label)
-            const hasPS = Boolean(pointSolutions[label])
-            const active = covered || hasPS
+            const psData = pointSolutions[label]
+            if (!covered && !psData) return null   // gap modules: no line
+
+            const quality = psData?.integrationQuality ?? 'fully_integrated'
+            const direction = psData?.integrationDirection ?? 'bidirectional'
+            const color = psData
+              ? (QUALITY_OPTIONS.find((q) => q.value === quality)?.color ?? '#1D9E75')
+              : '#1D9E75'
+
+            // Shorten line so it doesn't overlap circle borders
+            const dx = CX - pos.x
+            const dy = CY - pos.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+            const ux = dx / dist
+            const uy = dy / dist
+            const x1 = pos.x + ux * (MODULE_R + 2)
+            const y1 = pos.y + uy * (MODULE_R + 2)
+            const x2 = CX - ux * (PRIMARY_R + 2)
+            const y2 = CY - uy * (PRIMARY_R + 2)
+
+            const markerEnd = psData && (direction === 'to_primary' || direction === 'bidirectional')
+              ? `url(#arrow-end-${quality})` : undefined
+            const markerStart = psData && (direction === 'from_primary' || direction === 'bidirectional')
+              ? `url(#arrow-start-${quality})` : undefined
+
             return (
-              <line key={`line-${i}`} x1={CX} y1={CY} x2={pos.x} y2={pos.y}
-                stroke={active ? '#1D9E75' : '#D3D1C7'}
-                strokeWidth={active ? 2 : 1.5}
-                strokeDasharray={active ? undefined : '6,4'}
-                opacity={active ? 0.6 : 0.4}
+              <line key={`line-${i}`} x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke={color}
+                strokeWidth={2.5}
+                markerEnd={markerEnd}
+                markerStart={markerStart}
+                opacity={0.75}
               />
             )
           })}
@@ -348,6 +387,7 @@ export function TechStackCanvas({
             const pos = satPos(i)
             const covered = coveredModules.includes(label)
             const psData = pointSolutions[label]
+            const isGap = primaryVendor && !covered && !psData
             const lines = splitLabel(label)
             const lineSpacing = 14
 
@@ -355,8 +395,9 @@ export function TechStackCanvas({
             let stroke = '#D3D1C7'
             let sw = 1.5
             let dash: string | undefined = '7,5'
-            if (covered) { fill = '#E1F5EE'; stroke = '#1D9E75'; sw = 2.5; dash = undefined }
-            else if (psData) { fill = '#EEF2FF'; stroke = '#4338CA'; sw = 2; dash = undefined }
+            if (covered)  { fill = '#E1F5EE'; stroke = '#1D9E75'; sw = 2.5; dash = undefined }
+            else if (psData)  { fill = '#EEF2FF'; stroke = '#4338CA'; sw = 2;   dash = undefined }
+            else if (isGap)   { fill = '#FFF5F0'; stroke = '#D85A30'; sw = 1.5; dash = '7,5' }
 
             return (
               <g key={label} onClick={() => openModuleModal(label)} style={{ cursor: 'pointer' }} role="button" aria-label={`Configure ${label}`}>
@@ -377,6 +418,13 @@ export function TechStackCanvas({
                     </text>
                     {lines.map((line, li) => (
                       <text key={li} x={pos.x} y={pos.y + 7 + li * 11} textAnchor="middle" fontSize={8} fontFamily="Inter, sans-serif" fill="#9CA3AF">{line}</text>
+                    ))}
+                  </>
+                ) : isGap ? (
+                  <>
+                    <text x={pos.x} y={pos.y - 6} textAnchor="middle" fontSize={8} fontFamily="Inter, sans-serif" fontWeight={600} fill="#D85A30" letterSpacing={0.5}>NO SYSTEM</text>
+                    {lines.map((line, li) => (
+                      <text key={li} x={pos.x} y={pos.y + 7 + li * 11} textAnchor="middle" fontSize={8} fontFamily="Inter, sans-serif" fill="#D85A30" opacity={0.7}>{line}</text>
                     ))}
                   </>
                 ) : (
@@ -414,6 +462,26 @@ export function TechStackCanvas({
               </>
             )}
           </g>
+
+          {/* Legend */}
+          {(() => {
+            const legendY = VB_H + 14
+            const itemW = 200
+            const startX = (VB_W - QUALITY_OPTIONS.length * itemW) / 2
+            return (
+              <g>
+                <text x={VB_W / 2} y={legendY} textAnchor="middle" fontSize={8} fontFamily="Inter, sans-serif" fill="#9CA3AF" letterSpacing={1.5}>
+                  INTEGRATION QUALITY
+                </text>
+                {QUALITY_OPTIONS.map(({ value, label, color }, i) => (
+                  <g key={value}>
+                    <circle cx={startX + i * itemW + 6} cy={legendY + 16} r={5} fill={color} />
+                    <text x={startX + i * itemW + 16} y={legendY + 20} fontSize={9} fontFamily="Inter, sans-serif" fill="#6B6B65">{label}</text>
+                  </g>
+                ))}
+              </g>
+            )
+          })()}
         </svg>
       </div>
 
