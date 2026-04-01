@@ -50,6 +50,16 @@ function splitLabel(label: string): string[] {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type IntegrationQuality = 'fully_integrated' | 'mostly_automated' | 'partially_automated' | 'fully_manual'
+type IntegrationDirection = 'to_primary' | 'from_primary' | 'bidirectional'
+
+const QUALITY_OPTIONS: { value: IntegrationQuality; label: string; color: string }[] = [
+  { value: 'fully_integrated',    label: 'Fully Integrated',    color: '#1D8348' },
+  { value: 'mostly_automated',    label: 'Mostly Automated',    color: '#E5A000' },
+  { value: 'partially_automated', label: 'Partially Automated', color: '#D85A30' },
+  { value: 'fully_manual',        label: 'Fully Manual',        color: '#D93025' },
+]
+
 interface Ratings {
   admin: number
   employee: number
@@ -61,6 +71,8 @@ interface PointSolutionData {
   ratings: Ratings
   alsoCovers: string[]   // module labels
   notes: string
+  integrationQuality: IntegrationQuality
+  integrationDirection: IntegrationDirection
 }
 
 export interface TechStackCanvasProps {
@@ -100,6 +112,8 @@ function Spinner() {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const DEFAULT_RATINGS: Ratings = { admin: 0, employee: 0, service: 0 }
+const DEFAULT_QUALITY: IntegrationQuality = 'mostly_automated'
+const DEFAULT_DIRECTION: IntegrationDirection = 'bidirectional'
 
 export function TechStackCanvas({
   projectId,
@@ -127,6 +141,8 @@ export function TechStackCanvas({
   const [draftRatings, setDraftRatings] = useState<Ratings>(DEFAULT_RATINGS)
   const [draftAlsoCovers, setDraftAlsoCovers] = useState<string[]>([])
   const [draftNotes, setDraftNotes] = useState('')
+  const [draftQuality, setDraftQuality] = useState<IntegrationQuality>(DEFAULT_QUALITY)
+  const [draftDirection, setDraftDirection] = useState<IntegrationDirection>(DEFAULT_DIRECTION)
   const [moduleSaving, setModuleSaving] = useState(false)
   const [moduleError, setModuleError] = useState<string | null>(null)
 
@@ -153,8 +169,8 @@ export function TechStackCanvas({
         vendorNotes: d.notes,
         coveredByPrimary: false,
         ratings: d.ratings,
-        integrationQuality: 'mostly_automated' as const,
-        integrationDirection: 'bidirectional' as const,
+        integrationQuality: d.integrationQuality,
+        integrationDirection: d.integrationDirection,
         alsoCoversLabels: d.alsoCovers,
       }))
   }
@@ -182,6 +198,8 @@ export function TechStackCanvas({
     setDraftRatings(existing?.ratings ?? DEFAULT_RATINGS)
     setDraftAlsoCovers(existing?.alsoCovers ?? [])
     setDraftNotes(existing?.notes ?? '')
+    setDraftQuality(existing?.integrationQuality ?? DEFAULT_QUALITY)
+    setDraftDirection(existing?.integrationDirection ?? DEFAULT_DIRECTION)
     setModuleError(null)
     setActiveModule(label)
   }
@@ -216,6 +234,8 @@ export function TechStackCanvas({
             ratings: draftRatings,
             alsoCovers: draftAlsoCovers,
             notes: draftNotes,
+            integrationQuality: draftQuality,
+            integrationDirection: draftDirection,
           }
         } else {
           overrides[activeModule] = null
@@ -236,6 +256,8 @@ export function TechStackCanvas({
             ratings: draftRatings,
             alsoCovers: draftAlsoCovers,
             notes: draftNotes,
+            integrationQuality: draftQuality,
+            integrationDirection: draftDirection,
           }
         }
         return next
@@ -509,6 +531,66 @@ export function TechStackCanvas({
                         rows={3}
                         className="w-full px-3 py-2 border border-outsail-gray-200 rounded-card text-sm text-outsail-slate bg-white focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal resize-none"
                       />
+                    </div>
+
+                    {/* Integration quality */}
+                    <div className="space-y-2">
+                      <p className="text-label text-outsail-navy">Integration Quality</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {QUALITY_OPTIONS.map(({ value, label, color }) => (
+                          <label
+                            key={value}
+                            className={`flex items-center gap-2.5 p-2.5 rounded-card border-2 cursor-pointer transition-all ${
+                              draftQuality === value
+                                ? 'border-current'
+                                : 'border-outsail-gray-200 hover:border-outsail-gray-300'
+                            }`}
+                            style={draftQuality === value ? { borderColor: color, backgroundColor: color + '18' } : {}}
+                          >
+                            <input
+                              type="radio"
+                              name="integrationQuality"
+                              value={value}
+                              checked={draftQuality === value}
+                              onChange={() => setDraftQuality(value)}
+                              className="sr-only"
+                            />
+                            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                            <span className="text-xs font-medium text-outsail-navy leading-tight">{label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Integration direction */}
+                    <div className="space-y-2">
+                      <p className="text-label text-outsail-navy">Integration Direction</p>
+                      <div className="flex gap-2">
+                        {([
+                          { value: 'to_primary',    label: primaryVendor ? `→ To ${primaryVendor}` : '→ To Primary' },
+                          { value: 'from_primary',  label: primaryVendor ? `← From ${primaryVendor}` : '← From Primary' },
+                          { value: 'bidirectional', label: '↔ Bidirectional' },
+                        ] as { value: IntegrationDirection; label: string }[]).map(({ value, label }) => (
+                          <label
+                            key={value}
+                            className={`flex-1 flex items-center justify-center px-2 py-2 rounded-card border-2 cursor-pointer text-xs font-medium text-center transition-all ${
+                              draftDirection === value
+                                ? 'border-outsail-navy bg-outsail-navy text-white'
+                                : 'border-outsail-gray-200 text-outsail-gray-600 hover:border-outsail-navy'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="integrationDirection"
+                              value={value}
+                              checked={draftDirection === value}
+                              onChange={() => setDraftDirection(value)}
+                              className="sr-only"
+                            />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </>
                 )}
