@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 
 const ALL_CATEGORIES = [
   'Payroll', 'Benefits Admin', 'Time & Attendance', 'Onboarding',
@@ -15,6 +15,7 @@ interface VendorRow {
   vendor_company: string | null
   website: string | null
   logo_url: string | null
+  primary_color: string | null
   can_be_primary: boolean | null
   suggested_categories: string | null
   is_active: boolean | null
@@ -32,6 +33,7 @@ export function VendorsClientPage({ initialVendors }: VendorsClientPageProps) {
   const [seeding, setSeeding] = useState(false)
   const [seedResult, setSeedResult] = useState<string | null>(null)
   const [creatingTable, setCreatingTable] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   function parseCategories(raw: string | null): string[] {
     if (!raw) return []
@@ -59,11 +61,7 @@ export function VendorsClientPage({ initialVendors }: VendorsClientPageProps) {
     try {
       const res = await fetch('/api/admin/create-vendors-table', { method: 'POST' })
       const data = await res.json() as { ok?: boolean; message?: string; error?: string }
-      if (data.ok) {
-        setSeedResult(`✓ ${data.message ?? 'Table created'}`)
-      } else {
-        setSeedResult(`Error: ${data.error ?? 'Unknown error'}`)
-      }
+      setSeedResult(data.ok ? `✓ ${data.message ?? 'Table created'}` : `Error: ${data.error ?? 'Unknown error'}`)
     } catch {
       setSeedResult('Failed to create table')
     } finally {
@@ -76,10 +74,9 @@ export function VendorsClientPage({ initialVendors }: VendorsClientPageProps) {
     setSeedResult(null)
     try {
       const res = await fetch('/api/admin/seed-vendors', { method: 'POST' })
-      const data = await res.json() as { ok?: boolean; inserted?: number; skipped?: number; total?: number; errors?: string[] }
+      const data = await res.json() as { ok?: boolean; inserted?: number; skipped?: number; total?: number }
       if (data.ok) {
         setSeedResult(`✓ Seeded ${data.inserted} vendors (${data.skipped} skipped, ${data.total} total)`)
-        // Reload page to show updated vendors
         window.location.reload()
       } else {
         setSeedResult('Seed failed')
@@ -91,19 +88,20 @@ export function VendorsClientPage({ initialVendors }: VendorsClientPageProps) {
     }
   }
 
+  async function patch(id: string, fields: Record<string, unknown>) {
+    const res = await fetch(`/api/admin/vendors/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fields),
+    })
+    return res.ok
+  }
+
   async function toggleActive(id: string, currentValue: boolean | null) {
     const newValue = !currentValue
     setVendors((prev) => prev.map((v) => v.id === id ? { ...v, is_active: newValue } : v))
-    try {
-      await fetch(`/api/admin/vendors/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: newValue }),
-      })
-    } catch {
-      // Revert
-      setVendors((prev) => prev.map((v) => v.id === id ? { ...v, is_active: currentValue } : v))
-    }
+    const ok = await patch(id, { is_active: newValue })
+    if (!ok) setVendors((prev) => prev.map((v) => v.id === id ? { ...v, is_active: currentValue } : v))
   }
 
   const activeCount = vendors.filter((v) => v.is_active !== false).length
@@ -116,7 +114,7 @@ export function VendorsClientPage({ initialVendors }: VendorsClientPageProps) {
         <div>
           <h1 className="text-header-lg text-outsail-navy">Vendor Management</h1>
           <p className="text-body text-outsail-gray-600 mt-1">
-            Manage the HR technology vendors available in the tech stack builder.
+            Manage HR technology vendors. Expand a row to upload a logo or set a brand color.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -137,14 +135,13 @@ export function VendorsClientPage({ initialVendors }: VendorsClientPageProps) {
         </div>
       </div>
 
-      {/* Seed result feedback */}
       {seedResult && (
         <div className={`p-3 rounded-card text-sm border ${seedResult.startsWith('✓') ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
           {seedResult}
         </div>
       )}
 
-      {/* Stats row */}
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="outsail-card text-center">
           <p className="text-header-sm text-outsail-navy">{vendors.length}</p>
@@ -185,11 +182,7 @@ export function VendorsClientPage({ initialVendors }: VendorsClientPageProps) {
               <button
                 key={v}
                 onClick={() => setPrimaryFilter(v)}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${
-                  primaryFilter === v
-                    ? 'bg-outsail-navy text-white'
-                    : 'text-outsail-gray-600 hover:bg-outsail-gray-50'
-                }`}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${primaryFilter === v ? 'bg-outsail-navy text-white' : 'text-outsail-gray-600 hover:bg-outsail-gray-50'}`}
               >
                 {v === 'all' ? 'All' : v === 'primary' ? 'Primary' : 'Point Solutions'}
               </button>
@@ -199,13 +192,11 @@ export function VendorsClientPage({ initialVendors }: VendorsClientPageProps) {
         <p className="text-xs text-outsail-gray-600 mt-2">{filtered.length} vendors shown</p>
       </div>
 
-      {/* Vendors table */}
+      {/* Table */}
       {vendors.length === 0 ? (
         <div className="outsail-card text-center py-12">
           <p className="text-body text-outsail-gray-600 mb-4">No vendors yet.</p>
-          <p className="text-sm text-outsail-gray-600">
-            Click <strong>Create Table</strong> first, then <strong>Seed Vendors</strong> to populate from the seed file.
-          </p>
+          <p className="text-sm text-outsail-gray-600">Click <strong>Create Table</strong> first, then <strong>Seed Vendors</strong>.</p>
         </div>
       ) : (
         <div className="outsail-card p-0 overflow-hidden">
@@ -216,60 +207,27 @@ export function VendorsClientPage({ initialVendors }: VendorsClientPageProps) {
                 <th className="text-left px-4 py-3 text-label text-outsail-gray-600">Company</th>
                 <th className="text-left px-4 py-3 text-label text-outsail-gray-600">Categories</th>
                 <th className="text-left px-4 py-3 text-label text-outsail-gray-600">Type</th>
+                <th className="text-left px-4 py-3 text-label text-outsail-gray-600">Logo / Color</th>
                 <th className="text-left px-4 py-3 text-label text-outsail-gray-600">Active</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outsail-gray-200">
               {filtered.map((v) => {
                 const cats = parseCategories(v.suggested_categories)
+                const isExpanded = expandedId === v.id
                 return (
-                  <tr key={v.id} className="hover:bg-outsail-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="text-sm font-medium text-outsail-navy">{v.product_name}</p>
-                      {v.website && (
-                        <a href={v.website} target="_blank" rel="noopener noreferrer" className="text-xs text-outsail-teal hover:underline">
-                          {v.website.replace(/^https?:\/\//, '')}
-                        </a>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-outsail-slate">{v.vendor_company ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {cats.slice(0, 3).map((c) => (
-                          <span key={c} className="text-xs bg-outsail-gray-50 border border-outsail-gray-200 px-1.5 py-0.5 rounded-full text-outsail-gray-600">
-                            {c}
-                          </span>
-                        ))}
-                        {cats.length > 3 && (
-                          <span className="text-xs text-outsail-gray-600">+{cats.length - 3}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${
-                        v.can_be_primary
-                          ? 'bg-outsail-teal/10 text-outsail-teal border-outsail-teal/30'
-                          : 'bg-outsail-gray-50 text-outsail-gray-600 border-outsail-gray-200'
-                      }`}>
-                        {v.can_be_primary ? 'Primary Platform' : 'Point Solution'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => toggleActive(v.id, v.is_active)}
-                        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          v.is_active !== false ? 'bg-outsail-teal' : 'bg-outsail-gray-200'
-                        }`}
-                        aria-label={v.is_active !== false ? 'Deactivate' : 'Activate'}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            v.is_active !== false ? 'translate-x-4' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </td>
-                  </tr>
+                  <VendorRow
+                    key={v.id}
+                    vendor={v}
+                    cats={cats}
+                    isExpanded={isExpanded}
+                    onToggleExpand={() => setExpandedId(isExpanded ? null : v.id)}
+                    onToggleActive={() => toggleActive(v.id, v.is_active)}
+                    onPatch={(fields) => {
+                      setVendors((prev) => prev.map((row) => row.id === v.id ? { ...row, ...fields } : row))
+                      patch(v.id, fields)
+                    }}
+                  />
                 )
               })}
             </tbody>
@@ -277,5 +235,165 @@ export function VendorsClientPage({ initialVendors }: VendorsClientPageProps) {
         </div>
       )}
     </div>
+  )
+}
+
+// ── Vendor row with inline logo/color editing ──────────────────────────────────
+
+function VendorRow({
+  vendor,
+  cats,
+  isExpanded,
+  onToggleExpand,
+  onToggleActive,
+  onPatch,
+}: {
+  vendor: VendorRow
+  cats: string[]
+  isExpanded: boolean
+  onToggleExpand: () => void
+  onToggleActive: () => void
+  onPatch: (fields: Record<string, unknown>) => void
+}) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [logoInput, setLogoInput] = useState(vendor.logo_url ?? '')
+  const [colorInput, setColorInput] = useState(vendor.primary_color ?? '#1D9E75')
+
+  function handleLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      setLogoInput(dataUrl)
+      onPatch({ logo_url: dataUrl })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function handleLogoUrlSave() {
+    onPatch({ logo_url: logoInput.trim() || null })
+  }
+
+  function handleColorChange(color: string) {
+    setColorInput(color)
+    onPatch({ primary_color: color })
+  }
+
+  return (
+    <>
+      <tr className="hover:bg-outsail-gray-50 transition-colors">
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            {vendor.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={vendor.logo_url} alt="" className="w-6 h-6 object-contain rounded flex-shrink-0" />
+            ) : (
+              <div
+                className="w-6 h-6 rounded flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-white"
+                style={{ backgroundColor: vendor.primary_color ?? '#6B6B65' }}
+              >
+                {vendor.product_name.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-medium text-outsail-navy">{vendor.product_name}</p>
+              {vendor.website && (
+                <a href={vendor.website} target="_blank" rel="noopener noreferrer" className="text-xs text-outsail-teal hover:underline">
+                  {vendor.website.replace(/^https?:\/\//, '')}
+                </a>
+              )}
+            </div>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm text-outsail-slate">{vendor.vendor_company ?? '—'}</td>
+        <td className="px-4 py-3">
+          <div className="flex flex-wrap gap-1">
+            {cats.slice(0, 3).map((c) => (
+              <span key={c} className="text-xs bg-outsail-gray-50 border border-outsail-gray-200 px-1.5 py-0.5 rounded-full text-outsail-gray-600">{c}</span>
+            ))}
+            {cats.length > 3 && <span className="text-xs text-outsail-gray-600">+{cats.length - 3}</span>}
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${vendor.can_be_primary ? 'bg-outsail-teal/10 text-outsail-teal border-outsail-teal/30' : 'bg-outsail-gray-50 text-outsail-gray-600 border-outsail-gray-200'}`}>
+            {vendor.can_be_primary ? 'Primary Platform' : 'Point Solution'}
+          </span>
+        </td>
+        <td className="px-4 py-3">
+          <button
+            onClick={onToggleExpand}
+            className="flex items-center gap-1.5 text-xs text-outsail-teal hover:underline"
+          >
+            {vendor.logo_url ? '✓ Logo' : 'Add logo'}
+            {vendor.primary_color ? ` · ${vendor.primary_color}` : ''}
+            <span className="text-outsail-gray-200">·</span>
+            <span>{isExpanded ? 'close ▲' : 'edit ▼'}</span>
+          </button>
+        </td>
+        <td className="px-4 py-3">
+          <button
+            onClick={onToggleActive}
+            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${vendor.is_active !== false ? 'bg-outsail-teal' : 'bg-outsail-gray-200'}`}
+            aria-label={vendor.is_active !== false ? 'Deactivate' : 'Activate'}
+          >
+            <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ${vendor.is_active !== false ? 'translate-x-4' : 'translate-x-0'}`} />
+          </button>
+        </td>
+      </tr>
+
+      {isExpanded && (
+        <tr className="bg-outsail-gray-50">
+          <td colSpan={6} className="px-6 py-4">
+            <div className="flex flex-wrap gap-6 items-start">
+              {/* Logo section */}
+              <div className="space-y-2 min-w-[280px]">
+                <p className="text-label text-outsail-navy">Logo (URL or upload PNG/SVG)</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={logoInput}
+                    onChange={(e) => setLogoInput(e.target.value)}
+                    placeholder="https://... or upload file →"
+                    className="flex-1 px-3 py-1.5 border border-outsail-gray-200 rounded-card text-sm focus:outline-none focus:ring-2 focus:ring-outsail-teal/30 focus:border-outsail-teal"
+                  />
+                  <button
+                    onClick={handleLogoUrlSave}
+                    className="px-3 py-1.5 bg-outsail-teal text-white text-sm rounded-card hover:bg-outsail-teal/90"
+                  >Save</button>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input ref={fileRef} type="file" accept="image/png,image/svg+xml,image/jpeg,image/webp" className="hidden" onChange={handleLogoFile} />
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="px-3 py-1.5 border border-outsail-gray-200 text-sm text-outsail-gray-600 rounded-card hover:border-outsail-navy"
+                  >Upload file</button>
+                  {vendor.logo_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={vendor.logo_url} alt="" className="h-8 w-auto object-contain border border-outsail-gray-200 rounded p-0.5" />
+                  )}
+                </div>
+              </div>
+
+              {/* Color section */}
+              <div className="space-y-2">
+                <p className="text-label text-outsail-navy">Brand Color</p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={colorInput}
+                    onChange={(e) => handleColorChange(e.target.value)}
+                    className="w-10 h-10 rounded cursor-pointer border border-outsail-gray-200"
+                  />
+                  <span className="text-sm font-mono text-outsail-slate">{colorInput}</span>
+                  <div className="w-8 h-8 rounded-full border-2" style={{ borderColor: colorInput, backgroundColor: colorInput + '20' }} />
+                </div>
+                <p className="text-xs text-outsail-gray-600">Used as tint on the tech stack canvas circle border</p>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   )
 }

@@ -25,6 +25,7 @@ export default async function VendorsSettingsPage() {
     vendor_company: string | null
     website: string | null
     logo_url: string | null
+    primary_color: string | null
     can_be_primary: boolean | null
     suggested_categories: string | null
     is_active: boolean | null
@@ -38,6 +39,7 @@ export default async function VendorsSettingsPage() {
         vendor_company: vendors.vendor_company,
         website: vendors.website,
         logo_url: vendors.logo_url,
+        primary_color: vendors.primary_color,
         can_be_primary: vendors.can_be_primary,
         suggested_categories: vendors.suggested_categories,
         is_active: vendors.is_active,

@@ -2,17 +2,20 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 
-interface VendorResult {
+export interface VendorResult {
   id: string
   product_name: string
   vendor_company: string | null
   logo_url: string | null
+  primary_color: string | null
   can_be_primary: boolean | null
 }
 
 interface VendorComboboxProps {
   value: string
   onChange: (v: string) => void
+  /** Called with the full vendor record when a known vendor is selected, null for custom entries */
+  onSelectFull?: (vendor: VendorResult | null) => void
   placeholder?: string
   /** Only show vendors that can be a primary HCM platform */
   canBePrimary?: boolean
@@ -23,6 +26,7 @@ interface VendorComboboxProps {
 export function VendorCombobox({
   value,
   onChange,
+  onSelectFull,
   placeholder = 'Search vendors...',
   canBePrimary,
   category,
@@ -87,9 +91,10 @@ export function VendorCombobox({
     }, 200)
   }
 
-  function handleSelect(productName: string) {
+  function handleSelect(productName: string, vendorRecord?: VendorResult) {
     setInputValue(productName)
     onChange(productName)
+    if (onSelectFull) onSelectFull(vendorRecord ?? null)
     setOpen(false)
   }
 
@@ -109,7 +114,7 @@ export function VendorCombobox({
       />
 
       {open && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-outsail-gray-200 rounded-card shadow-md max-h-60 overflow-y-auto">
+        <div className="absolute z-50 mt-1 bg-white border border-outsail-gray-200 rounded-card shadow-lg max-h-[300px] overflow-y-auto" style={{ width: 'max(100%, 480px)' }}>
           {loading && (
             <div className="px-3 py-2 text-sm text-outsail-gray-600">Loading...</div>
           )}
@@ -124,19 +129,23 @@ export function VendorCombobox({
               type="button"
               onMouseDown={(e) => {
                 e.preventDefault()
-                handleSelect(vendor.product_name)
+                handleSelect(vendor.product_name, vendor)
               }}
-              className={`w-full text-left px-3 py-2 text-body hover:bg-outsail-gray-50 transition-colors flex items-center gap-2 ${
+              className={`w-full text-left px-3 py-2.5 hover:bg-outsail-gray-50 transition-colors flex items-center gap-3 ${
                 vendor.product_name === value ? 'text-outsail-teal font-medium' : 'text-outsail-slate'
               }`}
             >
-              {vendor.logo_url && (
+              {vendor.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={vendor.logo_url} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+                <img src={vendor.logo_url} alt="" className="w-6 h-6 object-contain flex-shrink-0 rounded" />
+              ) : (
+                <div className="w-6 h-6 rounded flex-shrink-0 bg-outsail-gray-50 border border-outsail-gray-200 flex items-center justify-center text-[8px] font-bold text-outsail-gray-600">
+                  {vendor.product_name.slice(0, 2).toUpperCase()}
+                </div>
               )}
-              <span className="truncate">{vendor.product_name}</span>
+              <span className="text-sm flex-1 truncate">{vendor.product_name}</span>
               {vendor.vendor_company && vendor.vendor_company !== vendor.product_name && (
-                <span className="text-xs text-outsail-gray-600 ml-auto flex-shrink-0">{vendor.vendor_company}</span>
+                <span className="text-xs text-outsail-gray-600 flex-shrink-0">{vendor.vendor_company}</span>
               )}
             </button>
           ))}
