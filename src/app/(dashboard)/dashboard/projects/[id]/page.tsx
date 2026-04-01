@@ -15,11 +15,14 @@ export const metadata = {
 }
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
-  setup: 'Setup',
   intake: 'Intake',
-  chat: 'Discovery',
-  review: 'Review',
-  complete: 'Complete',
+  discovery_complete: 'Discovery Done',
+  summary_approved: 'Summary Approved',
+  deep_discovery: 'Deep Discovery',
+  blueprint_generation: 'Blueprint',
+  client_review: 'Client Review',
+  approved: 'Approved',
+  outputs: 'Outputs',
 }
 
 const TIER_LABELS: Record<ProjectTier, string> = {
@@ -136,7 +139,7 @@ export default async function ProjectDetailPage({
     client_contact_email: project.client_contact_email,
     headcount: project.headcount,
     tier: project.tier as ProjectTier | null,
-    status: (project.status ?? 'setup') as ProjectStatus,
+    status: (project.status ?? 'intake') as ProjectStatus,
     scope_notes: project.scope_notes,
     readiness_level: project.readiness_level,
     created_at: project.created_at,

@@ -32,11 +32,14 @@ const STATUS_DOT: Record<SectionStatus, string> = {
 }
 
 const PROJECT_STATUS_LABELS: Record<string, string> = {
-  setup: 'Setup',
   intake: 'Intake',
-  chat: 'Discovery',
-  review: 'Review',
-  complete: 'Complete',
+  discovery_complete: 'Discovery Done',
+  summary_approved: 'Summary Approved',
+  deep_discovery: 'Deep Discovery',
+  blueprint_generation: 'Blueprint',
+  client_review: 'Client Review',
+  approved: 'Approved',
+  outputs: 'Outputs',
 }
 
 const TIER_LABELS: Record<string, string> = {
@@ -198,10 +201,10 @@ export default async function WorkspacePage() {
                 </p>
               </div>
               <Link
-                href="/workspace/chat"
+                href="/workspace/intake/discovery"
                 className="flex-shrink-0 inline-flex items-center gap-2 h-10 px-5 rounded-md text-sm font-semibold text-white bg-outsail-navy hover:bg-outsail-navy/90 transition-colors"
               >
-                Blueprint Assistant →
+                Continue →
               </Link>
             </div>
           )}

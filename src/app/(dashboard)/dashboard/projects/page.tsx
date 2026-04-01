@@ -31,11 +31,14 @@ interface Project {
 }
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
-  setup: 'Setup',
   intake: 'Intake',
-  chat: 'Discovery',
-  review: 'Review',
-  complete: 'Complete',
+  discovery_complete: 'Discovery Done',
+  summary_approved: 'Summary Approved',
+  deep_discovery: 'Deep Discovery',
+  blueprint_generation: 'Blueprint',
+  client_review: 'Client Review',
+  approved: 'Approved',
+  outputs: 'Outputs',
 }
 
 const TIER_LABELS: Record<ProjectTier, string> = {
@@ -78,11 +81,14 @@ export default function ProjectsPage() {
 
   const statuses: Array<ProjectStatus | 'all'> = [
     'all',
-    'setup',
     'intake',
-    'chat',
-    'review',
-    'complete',
+    'discovery_complete',
+    'summary_approved',
+    'deep_discovery',
+    'blueprint_generation',
+    'client_review',
+    'approved',
+    'outputs',
   ]
 
   return (
@@ -194,11 +200,14 @@ export default function ProjectsPage() {
                           <Badge
                             variant={
                               project.status as
-                                | 'setup'
                                 | 'intake'
-                                | 'chat'
-                                | 'review'
-                                | 'complete'
+                                | 'discovery_complete'
+                                | 'summary_approved'
+                                | 'deep_discovery'
+                                | 'blueprint_generation'
+                                | 'client_review'
+                                | 'approved'
+                                | 'outputs'
                             }
                           >
                             {STATUS_LABELS[project.status]}

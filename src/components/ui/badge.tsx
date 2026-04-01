@@ -14,17 +14,23 @@ const badgeVariants = cva(
         destructive:
           'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
         outline: 'text-foreground',
-        // OutSail status variants
-        setup:
-          'border-transparent bg-outsail-gray-200 text-outsail-slate',
+        // OutSail project status variants
         intake:
           'border-transparent bg-blue-100 text-blue-700',
-        chat:
+        discovery_complete:
           'border-transparent bg-outsail-teal-light text-outsail-teal-dark',
-        review:
+        summary_approved:
+          'border-transparent bg-outsail-teal-light text-outsail-teal-dark',
+        deep_discovery:
           'border-transparent bg-amber-100 text-amber-700',
-        complete:
-          'border-transparent bg-green-100 text-outsail-green',
+        blueprint_generation:
+          'border-transparent bg-purple-100 text-purple-700',
+        client_review:
+          'border-transparent bg-amber-100 text-amber-700',
+        approved:
+          'border-transparent bg-green-100 text-green-700',
+        outputs:
+          'border-transparent bg-green-100 text-green-700',
         // Tier variants
         essentials:
           'border-transparent bg-outsail-blue/10 text-outsail-blue',

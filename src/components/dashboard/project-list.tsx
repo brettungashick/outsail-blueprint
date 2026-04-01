@@ -26,11 +26,14 @@ interface DashboardProjectListProps {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  setup: 'Setup',
   intake: 'Intake',
-  chat: 'Discovery',
-  review: 'Review',
-  complete: 'Complete',
+  discovery_complete: 'Discovery Done',
+  summary_approved: 'Summary Approved',
+  deep_discovery: 'Deep Discovery',
+  blueprint_generation: 'Blueprint',
+  client_review: 'Client Review',
+  approved: 'Approved',
+  outputs: 'Outputs',
 }
 
 const TIER_LABELS: Record<string, string> = {
@@ -40,11 +43,14 @@ const TIER_LABELS: Record<string, string> = {
 }
 
 const STATUS_BADGE_VARIANTS: Record<string, string> = {
-  setup: 'setup',
   intake: 'intake',
-  chat: 'chat',
-  review: 'review',
-  complete: 'complete',
+  discovery_complete: 'discovery_complete',
+  summary_approved: 'summary_approved',
+  deep_discovery: 'deep_discovery',
+  blueprint_generation: 'blueprint_generation',
+  client_review: 'client_review',
+  approved: 'approved',
+  outputs: 'outputs',
 }
 
 const TIER_BADGE_VARIANTS: Record<string, string> = {
@@ -134,12 +140,15 @@ export function DashboardProjectList({ initialProjects }: DashboardProjectListPr
         <Card>
           <div className="divide-y divide-outsail-gray-200">
             {filtered.map((project) => {
-              const statusVariant = (STATUS_BADGE_VARIANTS[project.status ?? 'setup'] ?? 'setup') as
-                | 'setup'
+              const statusVariant = (STATUS_BADGE_VARIANTS[project.status ?? 'intake'] ?? 'intake') as
                 | 'intake'
-                | 'chat'
-                | 'review'
-                | 'complete'
+                | 'discovery_complete'
+                | 'summary_approved'
+                | 'deep_discovery'
+                | 'blueprint_generation'
+                | 'client_review'
+                | 'approved'
+                | 'outputs'
               const tierVariant = project.tier
                 ? ((TIER_BADGE_VARIANTS[project.tier] ?? 'essentials') as
                     | 'essentials'
@@ -167,7 +176,7 @@ export function DashboardProjectList({ initialProjects }: DashboardProjectListPr
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant={statusVariant}>
-                        {STATUS_LABELS[project.status ?? 'setup'] ?? project.status}
+                        {STATUS_LABELS[project.status ?? 'intake'] ?? project.status}
                       </Badge>
                       {tierVariant && (
                         <Badge variant={tierVariant}>

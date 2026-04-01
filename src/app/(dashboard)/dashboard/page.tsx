@@ -88,7 +88,7 @@ export default async function DashboardPage() {
 
   // Compute stats
   const totalProjects = userProjects.length
-  const activeProjects = userProjects.filter((p) => p.status !== 'complete').length
+  const activeProjects = userProjects.filter((p) => p.status !== 'outputs').length
   const draftReadyCount = userProjects.filter(
     (p) => p.readiness_level === 'draft_ready'
   ).length
