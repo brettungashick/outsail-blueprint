@@ -9,7 +9,7 @@ import { TechStackBuilderWrapper } from './_tech-stack-wrapper'
 
 export const dynamic = 'force-dynamic'
 
-const INTAKE_STEPS = ['Company Profile', 'Tech Stack', 'Requirements', 'Processes', 'Review']
+const INTAKE_STEPS = ['Company Profile', 'Tech Stack', 'Discovery Chat', 'Summary Review']
 
 export default async function TechStackIntakePage() {
   const cookieStore = cookies()

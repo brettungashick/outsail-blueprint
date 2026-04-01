@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, ClipboardList, Layers, MessageCircle, Map, FileOutput, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Layers, MessageCircle, FileText, Map, FileOutput, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { label: 'Intake',     href: '/workspace/intake',            icon: ClipboardList,   exact: true,  disabled: false },
   { label: 'Tech Stack', href: '/workspace/intake/tech-stack', icon: Layers,          exact: false, disabled: false },
   { label: 'Discovery',  href: '/workspace/intake/discovery',  icon: MessageCircle,   exact: false, disabled: false },
+  { label: 'Summary',    href: '/workspace/intake/summary',    icon: FileText,        exact: false, disabled: false },
   { label: 'Blueprint',  href: null,                           icon: Map,             exact: false, disabled: true  },
   { label: 'Outputs',    href: null,                           icon: FileOutput,      exact: false, disabled: true  },
 ]

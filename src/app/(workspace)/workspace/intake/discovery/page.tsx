@@ -1,44 +1,147 @@
-import Link from 'next/link'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { projects, projectMembers, discoverySessions, chatMessages, users } from '@/lib/db/schema'
+import { eq, asc, desc } from 'drizzle-orm'
+import { createId } from '@paralleldrive/cuid2'
 import { IntakeStepper } from '@/components/workspace/intake-stepper'
+import { BlueprintChat } from '@/components/chat/blueprint-chat'
+import type { BlueprintChatMessage } from '@/components/chat/blueprint-chat'
 
-const INTAKE_STEPS = ['Company Profile', 'Tech Stack', 'Requirements', 'Processes', 'Review']
+export const dynamic = 'force-dynamic'
 
-export default function DiscoveryPage() {
+const INTAKE_STEPS = ['Company Profile', 'Tech Stack', 'Discovery Chat', 'Summary Review']
+
+export default async function DiscoveryPage() {
+  const cookieStore = cookies()
+  const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)
+  if (!sessionCookie?.value) redirect('/login')
+
+  const authSession = await verifySessionToken(sessionCookie.value)
+  if (!authSession) redirect('/login')
+
+  // Find the client's project
+  const memberships = await db
+    .select({ project_id: projectMembers.project_id })
+    .from(projectMembers)
+    .where(eq(projectMembers.user_id, authSession.userId))
+    .all()
+
+  const projectIds = memberships.map((m) => m.project_id)
+  if (projectIds.length === 0) {
+    return <NoProjectView />
+  }
+
+  const projectRows = await db
+    .select()
+    .from(projects)
+    .orderBy(desc(projects.updated_at))
+    .all()
+
+  const project = projectRows.find((r) => projectIds.includes(r.id))
+  if (!project) {
+    return <NoProjectView />
+  }
+
+  // If summary already approved, redirect to summary
+  if (project.status === 'summary_approved' || project.status === 'deep_discovery' ||
+      project.status === 'blueprint_generation' || project.status === 'client_review' ||
+      project.status === 'approved' || project.status === 'outputs') {
+    redirect('/workspace/intake/summary')
+  }
+
+  // Get the user's display info
+  const userRecord = await db
+    .select({ name: users.name, email: users.email })
+    .from(users)
+    .where(eq(users.id, authSession.userId))
+    .get()
+
+  const participant = {
+    name: userRecord?.name ?? authSession.email,
+    role: 'client',
+    email: userRecord?.email ?? authSession.email,
+  }
+
+  // Check for existing discovery session
+  const existingSessions = await db
+    .select()
+    .from(discoverySessions)
+    .where(eq(discoverySessions.project_id, project.id))
+    .orderBy(desc(discoverySessions.created_at))
+    .all()
+
+  const discoverySession = existingSessions.find((s) => s.session_type === 'discovery')
+
+  // If completed session exists, redirect to summary
+  if (discoverySession?.status === 'completed' && project.status === 'discovery_complete') {
+    redirect('/workspace/intake/summary')
+  }
+
+  // Create session if it doesn't exist
+  let sessionId: string
+  if (!discoverySession) {
+    sessionId = createId()
+    await db.insert(discoverySessions).values({
+      id: sessionId,
+      project_id: project.id,
+      session_type: 'discovery',
+      status: 'active',
+      created_by: authSession.userId,
+    })
+  } else {
+    sessionId = discoverySession.id
+  }
+
+  // Load existing message history for this session
+  const rawMessages = await db
+    .select({
+      id: chatMessages.id,
+      role: chatMessages.role,
+      content: chatMessages.content,
+    })
+    .from(chatMessages)
+    .where(eq(chatMessages.session_id, sessionId))
+    .orderBy(asc(chatMessages.created_at))
+    .all()
+
+  const initialMessages: BlueprintChatMessage[] = rawMessages.map((m) => ({
+    id: m.id,
+    role: m.role as 'assistant' | 'user',
+    content: m.content,
+  }))
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <IntakeStepper currentStep={3} steps={INTAKE_STEPS} />
 
       <div>
         <h1 className="text-header-lg text-outsail-navy">Discovery Chat</h1>
         <p className="text-body text-outsail-gray-600 mt-1">
-          In-depth discovery conversation with your OutSail advisor.
+          A quick conversation to understand your priorities, vendors, and any complexities — takes about 5–10 minutes.
         </p>
       </div>
 
-      <div className="outsail-card flex flex-col items-center justify-center py-16 text-center gap-4">
-        <div className="w-16 h-16 rounded-full bg-outsail-teal/10 flex items-center justify-center">
-          <svg className="w-8 h-8 text-outsail-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-          </svg>
-        </div>
-        <div>
-          <h2 className="text-header-sm text-outsail-navy">Discovery Chat — Coming Soon</h2>
-          <p className="text-body text-outsail-gray-600 mt-1 max-w-sm">
-            Your advisor will guide you through a structured discovery session to understand your HR requirements in depth.
-          </p>
-        </div>
-      </div>
+      <BlueprintChat
+        sessionType="discovery"
+        projectId={project.id}
+        sessionId={sessionId}
+        participant={participant}
+        initialMessages={initialMessages}
+      />
+    </div>
+  )
+}
 
-      <div>
-        <Link
-          href="/workspace/intake/tech-stack"
-          className="inline-flex items-center gap-2 text-sm text-outsail-gray-600 hover:text-outsail-navy transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Tech Stack
-        </Link>
+function NoProjectView() {
+  return (
+    <div className="space-y-8">
+      <IntakeStepper currentStep={3} steps={INTAKE_STEPS} />
+      <div className="outsail-card text-center py-12">
+        <p className="text-body text-outsail-gray-600">
+          No project found. Your advisor will set up your workspace shortly.
+        </p>
       </div>
     </div>
   )

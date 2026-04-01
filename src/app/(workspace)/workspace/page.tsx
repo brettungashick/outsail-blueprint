@@ -192,20 +192,54 @@ export default async function WorkspacePage() {
             </div>
           )}
 
-          {intakeComplete && (
+          {intakeComplete && project.status === 'intake' && (
             <div className="rounded-card border border-outsail-gray-200 bg-white p-6 flex items-center justify-between gap-6">
               <div>
                 <h2 className="text-header-sm text-outsail-navy">Intake Complete</h2>
                 <p className="text-body text-outsail-gray-600 mt-1">
-                  Your company profile and tech stack are saved. Ready for the Blueprint Assistant.
+                  Your company profile and tech stack are saved. Ready for the discovery chat.
                 </p>
               </div>
               <Link
                 href="/workspace/intake/discovery"
                 className="flex-shrink-0 inline-flex items-center gap-2 h-10 px-5 rounded-md text-sm font-semibold text-white bg-outsail-navy hover:bg-outsail-navy/90 transition-colors"
               >
-                Continue →
+                Start Discovery →
               </Link>
+            </div>
+          )}
+
+          {project.status === 'discovery_complete' && (
+            <div className="rounded-card border border-outsail-gray-200 bg-white p-6 flex items-center justify-between gap-6">
+              <div>
+                <h2 className="text-header-sm text-outsail-navy">Discovery Complete</h2>
+                <p className="text-body text-outsail-gray-600 mt-1">
+                  Your discovery chat is done. Review your summary before notifying your advisor.
+                </p>
+              </div>
+              <Link
+                href="/workspace/intake/summary"
+                className="flex-shrink-0 inline-flex items-center gap-2 h-10 px-5 rounded-md text-sm font-semibold text-white bg-outsail-teal hover:bg-outsail-teal-dark transition-colors"
+              >
+                Review Summary →
+              </Link>
+            </div>
+          )}
+
+          {project.status === 'summary_approved' && (
+            <div className="rounded-card border-2 border-outsail-teal bg-outsail-teal-light p-6">
+              <h2 className="text-header-sm text-outsail-navy mb-1">Summary Submitted</h2>
+              <p className="text-body text-outsail-gray-600 mt-1">
+                Your advisor has been notified. They&apos;ll reach out to schedule the next step in your discovery process.
+              </p>
+              <div className="mt-4 flex items-center gap-2">
+                <Link
+                  href="/workspace/intake/summary"
+                  className="text-sm text-outsail-teal hover:text-outsail-teal-dark font-medium underline"
+                >
+                  View your summary →
+                </Link>
+              </div>
             </div>
           )}
 
