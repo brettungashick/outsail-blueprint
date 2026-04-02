@@ -71,20 +71,29 @@ function buildProjectContext(project: {
   }
 
   // Tech stack context
+  lines.push('\nTECH STACK:')
   const primary = systems.find((s) => s.is_primary)
   if (primary) {
-    lines.push(`\nCurrent Primary Platform: ${primary.vendor ?? primary.system_name}`)
-    if (primary.modules_used) {
-      try {
-        const modules = JSON.parse(primary.modules_used) as string[]
-        if (modules.length > 0) lines.push(`Modules in use: ${modules.join(', ')}`)
-      } catch { /* skip */ }
+    const primaryName = primary.vendor ?? primary.system_name
+    let modules: string[] = []
+    try {
+      if (primary.modules_used) modules = JSON.parse(primary.modules_used) as string[]
+    } catch { /* skip */ }
+
+    if (modules.length > 0) {
+      lines.push(`Primary platform: ${primaryName} (covers ${modules.length} module${modules.length !== 1 ? 's' : ''}: ${modules.join(', ')})`)
+    } else {
+      lines.push(`Primary platform: ${primaryName} (modules not yet specified)`)
     }
+  } else {
+    lines.push('Primary platform: not yet specified — ask about their current main HR system early in the conversation')
   }
 
   const others = systems.filter((s) => !s.is_primary)
   if (others.length > 0) {
-    lines.push(`Other systems: ${others.map((s) => s.vendor ?? s.system_name).join(', ')}`)
+    lines.push(`Point solutions / other tools: ${others.map((s) => s.vendor ?? s.system_name).join(', ')}`)
+  } else if (primary) {
+    lines.push('Point solutions: none mapped yet — they may have additional tools worth asking about')
   }
 
   return lines.join('\n')
@@ -110,7 +119,7 @@ GUIDELINES:
 - When you have enough on all 3 topics, naturally wrap up with a brief summary and tell them you'll generate their Blueprint structure
 
 OPENING MESSAGE:
-Acknowledge their tech stack by name. Note something specific (e.g., "I can see you're running [Vendor] with [N] other tools"). Then pivot to the first topic in a friendly way.
+If they have a primary platform, acknowledge it by name (e.g., "I can see you're running [Vendor]"). If their tech stack is sparse or unspecified, open with a warm question about their current main HR system. Keep it brief and pivot quickly to discovering their pain points.
 
 CRITICAL: Only respond with your conversational message. No JSON, no markdown headers, no lists unless it flows naturally in conversation.`
 }

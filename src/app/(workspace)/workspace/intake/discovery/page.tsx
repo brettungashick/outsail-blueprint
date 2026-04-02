@@ -89,6 +89,7 @@ export default async function DiscoveryPage() {
       session_type: 'discovery',
       status: 'active',
       created_by: authSession.userId,
+      user_id: authSession.userId,  // satisfy legacy NOT NULL constraint in existing DBs
     })
   } else {
     sessionId = discoverySession.id

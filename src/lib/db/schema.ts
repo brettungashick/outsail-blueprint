@@ -144,6 +144,8 @@ export const discoverySessions = sqliteTable('sessions', {
     enum: ['pending', 'processing', 'complete', 'failed'],
   }),
   created_by: text('created_by').references(() => users.id),
+  // user_id: legacy column kept for DB compatibility with older table definitions
+  user_id: text('user_id'),
   created_at: integer('created_at', { mode: 'timestamp' }).$defaultFn(
     () => new Date()
   ),

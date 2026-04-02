@@ -164,6 +164,7 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
       transcript_raw TEXT,
       processing_status TEXT,
       created_by TEXT,
+      user_id TEXT DEFAULT '',
       created_at INTEGER,
       updated_at INTEGER
     )`,
@@ -424,6 +425,7 @@ const ALTER_COLUMNS: Array<{ col: string; sql: string }> = [
   { col: 'sessions.transcript_raw',         sql: `ALTER TABLE sessions ADD COLUMN transcript_raw TEXT` },
   { col: 'sessions.processing_status',      sql: `ALTER TABLE sessions ADD COLUMN processing_status TEXT` },
   { col: 'sessions.created_by',             sql: `ALTER TABLE sessions ADD COLUMN created_by TEXT` },
+  { col: 'sessions.user_id',               sql: `ALTER TABLE sessions ADD COLUMN user_id TEXT DEFAULT ''` },
   { col: 'sessions.created_at',             sql: `ALTER TABLE sessions ADD COLUMN created_at INTEGER` },
   { col: 'sessions.updated_at',             sql: `ALTER TABLE sessions ADD COLUMN updated_at INTEGER` },
 
