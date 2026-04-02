@@ -30,13 +30,18 @@ export async function GET(request: NextRequest) {
       rows = rows.filter((v) => !v.can_be_primary)
     }
 
-    // Filter by category
+    // Filter by category — use substring matching so short canvas module names
+    // (e.g. "Core HR") match longer seed-data strings ("Core HR / Employee Files")
     if (category) {
       rows = rows.filter((v) => {
         if (!v.suggested_categories) return false
         try {
           const cats = JSON.parse(v.suggested_categories) as string[]
-          return cats.some((c) => c.toLowerCase() === category)
+          return cats.some(
+            (c) =>
+              c.toLowerCase().includes(category) ||
+              category.includes(c.toLowerCase())
+          )
         } catch {
           return false
         }
@@ -52,8 +57,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Limit to 50 results
-    rows = rows.slice(0, 50)
+    // Limit to 100 results for client-facing combobox
+    rows = rows.slice(0, 100)
 
     // Parse suggested_categories back to arrays for response
     const result = rows.map((v) => ({

@@ -626,7 +626,7 @@ export async function runMigrations(): Promise<MigrationReport> {
     }
   }
 
-  // 3. Seed vendors (idempotent — skips existing product_names)
+  // 3. Seed vendors — INSERT new rows, UPDATE categories/can_be_primary for existing rows
   try {
     const existingResult = await execSQL(httpUrl, authToken, 'SELECT product_name FROM vendors')
     const rows = existingResult?.response?.result?.rows ?? []
@@ -636,10 +636,35 @@ export async function runMigrations(): Promise<MigrationReport> {
 
     for (const entry of vendorData) {
       if (existingNames.has(entry.product_name)) {
-        report.vendors.skipped++
+        // UPDATE: refresh categories and can_be_primary from seed data
+        try {
+          const updateResult = await execSQL(
+            httpUrl,
+            authToken,
+            `UPDATE vendors SET suggested_categories = ?, can_be_primary = ?, updated_at = ? WHERE product_name = ?`,
+            [
+              { type: 'text', value: JSON.stringify(entry.suggested_categories) },
+              { type: 'integer', value: entry.can_be_primary ? '1' : '0' },
+              { type: 'integer', value: String(now) },
+              { type: 'text', value: entry.product_name },
+            ]
+          )
+          if (updateResult?.type === 'error') {
+            report.vendors.errors.push(
+              `update ${entry.product_name}: ${updateResult.error?.message ?? 'unknown'}`
+            )
+          } else {
+            report.vendors.skipped++
+          }
+        } catch (err) {
+          report.vendors.errors.push(
+            `update ${entry.product_name}: ${err instanceof Error ? err.message : String(err)}`
+          )
+        }
         continue
       }
 
+      // INSERT new vendor
       try {
         const insertResult = await execSQL(
           httpUrl,

@@ -19,21 +19,28 @@ export async function PATCH(
   }
 
   const body = await request.json() as {
+    product_name?: string
+    vendor_company?: string | null
+    website?: string | null
     is_active?: boolean
+    can_be_primary?: boolean
     logo_url?: string | null
     primary_color?: string | null
+    suggested_categories?: string[]
   }
 
-  const patch: Partial<{
-    is_active: boolean
-    logo_url: string | null
-    primary_color: string | null
-    updated_at: Date
-  }> = { updated_at: new Date() }
+  const patch: Record<string, unknown> = { updated_at: new Date() }
 
+  if (body.product_name !== undefined) patch.product_name = body.product_name
+  if ('vendor_company' in body) patch.vendor_company = body.vendor_company ?? null
+  if ('website' in body) patch.website = body.website ?? null
   if (typeof body.is_active === 'boolean') patch.is_active = body.is_active
+  if (typeof body.can_be_primary === 'boolean') patch.can_be_primary = body.can_be_primary
   if ('logo_url' in body) patch.logo_url = body.logo_url ?? null
   if ('primary_color' in body) patch.primary_color = body.primary_color ?? null
+  if (Array.isArray(body.suggested_categories)) {
+    patch.suggested_categories = JSON.stringify(body.suggested_categories)
+  }
 
   if (Object.keys(patch).length === 1) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 })

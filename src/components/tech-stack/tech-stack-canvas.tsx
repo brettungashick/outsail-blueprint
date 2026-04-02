@@ -45,6 +45,8 @@ function splitLabel(label: string): string[] {
     'Global Payroll': ['Global', 'Payroll'],
     'Recruiting/ATS': ['Recruiting', 'ATS'],
     'Learning/LMS': ['Learning', 'LMS'],
+    'Core HR': ['Core HR'],
+    'Engagement': ['Engagement'],
   }
   return map[label] ?? [label]
 }
@@ -52,11 +54,11 @@ function splitLabel(label: string): string[] {
 function moduleAbbr(label: string): string {
   const map: Record<string, string> = {
     'Payroll': 'PR', 'HRIS': 'HR', 'Benefits Admin': 'BN',
-    'Time & Attendance': 'TA', 'Recruiting/ATS': 'AT', 'Learning/LMS': 'LM',
+    'Core HR': 'HR', 'Time & Attendance': 'TA', 'Recruiting/ATS': 'AT', 'Learning/LMS': 'LM',
     'Performance': 'PM', 'Workforce Management': 'WM', 'Compensation': 'CP',
     'Onboarding': 'ON', 'Offboarding': 'OB', 'ERP/General Ledger': 'GL',
-    'Global Payroll': 'GP', 'Expense Management': 'EX', 'Engagement': 'EG',
-    'Scheduling': 'SC', 'Analytics': 'AN',
+    'Global Payroll': 'GP', 'Expense': 'EX', 'Expense Management': 'EX',
+    'Engagement': 'EG', 'SSO': 'SS', 'Scheduling': 'SC', 'Analytics': 'AN',
   }
   return map[label] ?? label.slice(0, 2).toUpperCase()
 }
@@ -561,12 +563,26 @@ export function TechStackCanvas({
               const iconsToShow = coveredModules.slice(0, 10)
               const rows = Math.max(1, Math.ceil(iconsToShow.length / maxPerRow))
               const iconColor = primaryVendorMeta?.primary_color ?? '#1D9E75'
+              const logoUrl = primaryVendorMeta?.logo_url
               return (
                 <>
-                  <text x={CX} y={CY - 36} textAnchor="middle" fontSize={14} fontFamily="Inter, sans-serif" fontWeight={700} fill="#1B3A5C">
-                    {primaryVendor.length > 18 ? primaryVendor.slice(0, 17) + '…' : primaryVendor}
-                  </text>
-                  <text x={CX} y={CY - 20} textAnchor="middle" fontSize={8} fontFamily="Inter, sans-serif" fill="#9CA3AF" letterSpacing={1}>PRIMARY VENDOR</text>
+                  {logoUrl ? (
+                    <>
+                      <image href={logoUrl} x={CX - 18} y={CY - 62} width={36} height={36}
+                        clipPath="url(#primaryLogoClip)" preserveAspectRatio="xMidYMid meet" />
+                      <clipPath id="primaryLogoClip">
+                        <circle cx={CX} cy={CY - 44} r={18} />
+                      </clipPath>
+                      <text x={CX} y={CY - 20} textAnchor="middle" fontSize={8} fontFamily="Inter, sans-serif" fill="#9CA3AF" letterSpacing={1}>PRIMARY VENDOR</text>
+                    </>
+                  ) : (
+                    <>
+                      <text x={CX} y={CY - 36} textAnchor="middle" fontSize={14} fontFamily="Inter, sans-serif" fontWeight={700} fill="#1B3A5C">
+                        {primaryVendor.length > 18 ? primaryVendor.slice(0, 17) + '…' : primaryVendor}
+                      </text>
+                      <text x={CX} y={CY - 20} textAnchor="middle" fontSize={8} fontFamily="Inter, sans-serif" fill="#9CA3AF" letterSpacing={1}>PRIMARY VENDOR</text>
+                    </>
+                  )}
                   {iconsToShow.map((label, idx) => {
                     const row = Math.floor(idx / maxPerRow)
                     const col = idx % maxPerRow

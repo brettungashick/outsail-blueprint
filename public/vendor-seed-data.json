@@ -4,958 +4,1693 @@
     "vendor_company": "Workday",
     "website": "https://www.workday.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Performance", "Compensation", "Learning/LMS", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Performance",
+      "Compensation",
+      "Learning / LMS",
+      "Recruiting / ATS",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "SAP SuccessFactors",
     "vendor_company": "SAP",
     "website": "https://www.sap.com/products/hcm.html",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Performance", "Compensation", "Learning/LMS", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Performance",
+      "Compensation",
+      "Learning / LMS",
+      "Recruiting / ATS",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "Oracle HCM Cloud",
     "vendor_company": "Oracle",
     "website": "https://www.oracle.com/human-capital-management",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Performance", "Compensation", "Learning/LMS", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Performance",
+      "Compensation",
+      "Learning / LMS",
+      "Recruiting / ATS",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "ADP Workforce Now",
     "vendor_company": "ADP",
     "website": "https://www.adp.com/what-we-offer/products/adp-workforce-now.aspx",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "ADP Vantage HCM",
     "vendor_company": "ADP",
     "website": "https://www.adp.com/what-we-offer/products/adp-vantage-hcm.aspx",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Performance", "Compensation"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Performance",
+      "Compensation",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "UKG Pro",
     "vendor_company": "UKG",
     "website": "https://www.ukg.com/products/ukg-pro",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Performance", "Compensation"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Performance",
+      "Compensation",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "UKG Ready",
     "vendor_company": "UKG",
     "website": "https://www.ukg.com/products/ukg-ready",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "Dayforce",
     "vendor_company": "Ceridian",
     "website": "https://www.dayforce.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Performance", "Compensation", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Performance",
+      "Compensation",
+      "Recruiting / ATS",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "Paycom",
     "vendor_company": "Paycom",
     "website": "https://www.paycom.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Performance", "Learning/LMS", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Performance",
+      "Learning / LMS",
+      "Recruiting / ATS",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "Paylocity",
     "vendor_company": "Paylocity",
     "website": "https://www.paylocity.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Performance"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Performance",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "Rippling",
     "vendor_company": "Rippling",
     "website": "https://www.rippling.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Learning/LMS", "SSO"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Learning / LMS",
+      "SSO",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "BambooHR",
     "vendor_company": "BambooHR",
     "website": "https://www.bamboohr.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Onboarding", "Performance", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Onboarding",
+      "Performance",
+      "Recruiting / ATS",
+      "Primary Vendor",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Gusto",
     "vendor_company": "Gusto",
     "website": "https://gusto.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Onboarding"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Onboarding",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "Namely",
     "vendor_company": "Namely",
     "website": "https://www.namely.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Performance"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Performance",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "HiBob",
     "vendor_company": "HiBob",
     "website": "https://www.hibob.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Onboarding", "Performance", "Compensation"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Onboarding",
+      "Performance",
+      "Compensation",
+      "Primary Vendor",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Paychex Flex",
     "vendor_company": "Paychex",
     "website": "https://www.paychex.com/payroll-taxes/paychex-flex",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "iSolved",
     "vendor_company": "iSolved",
     "website": "https://www.isolved.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "Paycor",
     "vendor_company": "Paycor",
     "website": "https://www.paycor.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Performance", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Performance",
+      "Recruiting / ATS",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "TriNet HR Platform",
     "vendor_company": "TriNet",
     "website": "https://www.trinet.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "Zenefits",
     "vendor_company": "TriNet",
     "website": "https://www.zenefits.com",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Onboarding"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Onboarding",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "ServiceNow HR Service Delivery",
     "vendor_company": "ServiceNow",
     "website": "https://www.servicenow.com/products/hr-service-delivery.html",
     "can_be_primary": false,
-    "suggested_categories": ["Core HR", "Onboarding"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Onboarding"
+    ]
   },
   {
     "product_name": "Cornerstone OnDemand",
     "vendor_company": "Cornerstone",
     "website": "https://www.cornerstoneondemand.com",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS", "Performance"]
+    "suggested_categories": [
+      "Learning / LMS",
+      "Performance"
+    ]
   },
   {
     "product_name": "ADP Run",
     "vendor_company": "ADP",
     "website": "https://www.adp.com/what-we-offer/products/adp-run.aspx",
     "can_be_primary": false,
-    "suggested_categories": ["Payroll"]
+    "suggested_categories": [
+      "Payroll"
+    ]
   },
   {
     "product_name": "SurePayroll",
     "vendor_company": "Paychex",
     "website": "https://www.surepayroll.com",
     "can_be_primary": false,
-    "suggested_categories": ["Payroll"]
+    "suggested_categories": [
+      "Payroll"
+    ]
   },
   {
     "product_name": "QuickBooks Payroll",
     "vendor_company": "Intuit",
     "website": "https://quickbooks.intuit.com/payroll",
     "can_be_primary": false,
-    "suggested_categories": ["Payroll"]
+    "suggested_categories": [
+      "Payroll"
+    ]
   },
   {
     "product_name": "OnPay",
     "vendor_company": "OnPay",
     "website": "https://onpay.com",
     "can_be_primary": false,
-    "suggested_categories": ["Payroll"]
+    "suggested_categories": [
+      "Payroll"
+    ]
   },
   {
     "product_name": "Homebase",
     "vendor_company": "Homebase",
     "website": "https://joinhomebase.com",
     "can_be_primary": false,
-    "suggested_categories": ["Payroll", "Time & Attendance"]
+    "suggested_categories": [
+      "Payroll",
+      "Time & Attendance"
+    ]
   },
   {
     "product_name": "Benefitfocus",
     "vendor_company": "Voya Financial",
     "website": "https://www.benefitfocus.com",
     "can_be_primary": false,
-    "suggested_categories": ["Benefits Admin"]
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
   },
   {
     "product_name": "PlanSource",
     "vendor_company": "PlanSource",
     "website": "https://plansource.com",
     "can_be_primary": false,
-    "suggested_categories": ["Benefits Admin"]
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
   },
   {
     "product_name": "bswift",
     "vendor_company": "bswift",
     "website": "https://www.bswift.com",
     "can_be_primary": false,
-    "suggested_categories": ["Benefits Admin"]
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
   },
   {
     "product_name": "Businessolver",
     "vendor_company": "Businessolver",
     "website": "https://www.businessolver.com",
     "can_be_primary": false,
-    "suggested_categories": ["Benefits Admin"]
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
   },
   {
     "product_name": "Employee Navigator",
     "vendor_company": "Employee Navigator",
     "website": "https://www.employeenavigator.com",
     "can_be_primary": false,
-    "suggested_categories": ["Benefits Admin"]
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
   },
   {
     "product_name": "Maxwell Health",
     "vendor_company": "Sun Life",
     "website": "https://maxwellhealth.com",
     "can_be_primary": false,
-    "suggested_categories": ["Benefits Admin"]
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
   },
   {
     "product_name": "Ease",
     "vendor_company": "Ease",
     "website": "https://ease.com",
     "can_be_primary": false,
-    "suggested_categories": ["Benefits Admin"]
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
   },
   {
     "product_name": "HealthJoy",
     "vendor_company": "HealthJoy",
     "website": "https://healthjoy.com",
     "can_be_primary": false,
-    "suggested_categories": ["Benefits Admin"]
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
   },
   {
     "product_name": "ALEX (Jellyvision)",
     "vendor_company": "Jellyvision",
     "website": "https://www.jellyvision.com",
     "can_be_primary": false,
-    "suggested_categories": ["Benefits Admin"]
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
   },
   {
     "product_name": "UKG Dimensions",
     "vendor_company": "UKG",
     "website": "https://www.ukg.com/products/ukg-dimensions",
     "can_be_primary": false,
-    "suggested_categories": ["Time & Attendance"]
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
   },
   {
     "product_name": "Deputy",
     "vendor_company": "Deputy",
     "website": "https://www.deputy.com",
     "can_be_primary": false,
-    "suggested_categories": ["Time & Attendance"]
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
   },
   {
     "product_name": "When I Work",
     "vendor_company": "When I Work",
     "website": "https://wheniwork.com",
     "can_be_primary": false,
-    "suggested_categories": ["Time & Attendance"]
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
   },
   {
     "product_name": "QuickBooks Time",
     "vendor_company": "Intuit",
     "website": "https://quickbooks.intuit.com/time-tracking",
     "can_be_primary": false,
-    "suggested_categories": ["Time & Attendance"]
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
   },
   {
     "product_name": "Replicon",
     "vendor_company": "Replicon",
     "website": "https://www.replicon.com",
     "can_be_primary": false,
-    "suggested_categories": ["Time & Attendance"]
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
   },
   {
     "product_name": "TimeClock Plus",
     "vendor_company": "TCP Software",
     "website": "https://www.tcpsoftware.com",
     "can_be_primary": false,
-    "suggested_categories": ["Time & Attendance"]
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
   },
   {
     "product_name": "Sling",
     "vendor_company": "Sling",
     "website": "https://getsling.com",
     "can_be_primary": false,
-    "suggested_categories": ["Time & Attendance"]
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
   },
   {
     "product_name": "ClockShark",
     "vendor_company": "ClockShark",
     "website": "https://www.clockshark.com",
     "can_be_primary": false,
-    "suggested_categories": ["Time & Attendance"]
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
   },
   {
     "product_name": "Buddy Punch",
     "vendor_company": "Buddy Punch",
     "website": "https://buddypunch.com",
     "can_be_primary": false,
-    "suggested_categories": ["Time & Attendance"]
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
   },
   {
     "product_name": "Greenhouse",
     "vendor_company": "Greenhouse",
     "website": "https://www.greenhouse.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS",
+      "Onboarding"
+    ]
   },
   {
     "product_name": "Lever",
     "vendor_company": "Employ",
     "website": "https://www.lever.co",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Workable",
     "vendor_company": "Workable",
     "website": "https://www.workable.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "iCIMS",
     "vendor_company": "iCIMS",
     "website": "https://www.icims.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS",
+      "Onboarding"
+    ]
   },
   {
     "product_name": "SmartRecruiters",
     "vendor_company": "SmartRecruiters",
     "website": "https://www.smartrecruiters.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS",
+      "Onboarding"
+    ]
   },
   {
     "product_name": "JazzHR",
     "vendor_company": "Employ",
     "website": "https://www.jazzhr.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Breezy HR",
     "vendor_company": "Breezy HR",
     "website": "https://breezy.hr",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Jobvite",
     "vendor_company": "Employ",
     "website": "https://www.jobvite.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Ashby",
     "vendor_company": "Ashby",
     "website": "https://www.ashbyhq.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "HireVue",
     "vendor_company": "HireVue",
     "website": "https://www.hirevue.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS", "AI"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Pinpoint",
     "vendor_company": "Pinpoint",
     "website": "https://www.pinpointhq.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Recruitee",
     "vendor_company": "Recruitee",
     "website": "https://recruitee.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "ClearCompany",
     "vendor_company": "ClearCompany",
     "website": "https://www.clearcompany.com",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS", "Performance", "Onboarding"]
+    "suggested_categories": [
+      "Recruiting / ATS",
+      "Performance",
+      "Onboarding"
+    ]
   },
   {
     "product_name": "LinkedIn Talent Hub",
     "vendor_company": "LinkedIn",
     "website": "https://business.linkedin.com/talent-solutions/ats",
     "can_be_primary": false,
-    "suggested_categories": ["Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Docebo",
     "vendor_company": "Docebo",
     "website": "https://www.docebo.com",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS"]
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
   },
   {
     "product_name": "Absorb LMS",
     "vendor_company": "Absorb",
     "website": "https://www.absorblms.com",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS"]
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
   },
   {
     "product_name": "SAP Litmos",
     "vendor_company": "SAP",
     "website": "https://www.litmos.com",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS"]
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
   },
   {
     "product_name": "TalentLMS",
     "vendor_company": "Epignosis",
     "website": "https://www.talentlms.com",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS"]
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
   },
   {
     "product_name": "Skillsoft",
     "vendor_company": "Skillsoft",
     "website": "https://www.skillsoft.com",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS"]
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
   },
   {
     "product_name": "LinkedIn Learning",
     "vendor_company": "LinkedIn",
     "website": "https://learning.linkedin.com",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS"]
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
   },
   {
     "product_name": "360Learning",
     "vendor_company": "360Learning",
     "website": "https://360learning.com",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS"]
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
   },
   {
     "product_name": "Bridge",
     "vendor_company": "Instructure",
     "website": "https://www.bridgeapp.com",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS", "Performance"]
+    "suggested_categories": [
+      "Learning / LMS",
+      "Performance"
+    ]
   },
   {
     "product_name": "Degreed",
     "vendor_company": "Degreed",
     "website": "https://degreed.com",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS"]
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
   },
   {
     "product_name": "Percipio",
     "vendor_company": "Skillsoft",
     "website": "https://www.skillsoft.com/percipio",
     "can_be_primary": false,
-    "suggested_categories": ["Learning/LMS"]
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
   },
   {
     "product_name": "Lattice",
     "vendor_company": "Lattice",
     "website": "https://lattice.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance", "Compensation"]
+    "suggested_categories": [
+      "Performance",
+      "Compensation",
+      "Core HR / Employee Files",
+      "Engagement"
+    ]
   },
   {
     "product_name": "15Five",
     "vendor_company": "15Five",
     "website": "https://www.15five.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Culture Amp",
     "vendor_company": "Culture Amp",
     "website": "https://www.cultureamp.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Betterworks",
     "vendor_company": "Betterworks",
     "website": "https://www.betterworks.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance"
+    ]
   },
   {
     "product_name": "Leapsome",
     "vendor_company": "Leapsome",
     "website": "https://www.leapsome.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance", "Compensation"]
+    "suggested_categories": [
+      "Performance",
+      "Compensation",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Trakstar",
     "vendor_company": "Mitratech",
     "website": "https://www.trakstar.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance"
+    ]
   },
   {
     "product_name": "Engagedly",
     "vendor_company": "Engagedly",
     "website": "https://engagedly.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance"
+    ]
   },
   {
     "product_name": "Reflektive",
     "vendor_company": "Reflektive",
     "website": "https://www.reflektive.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance"
+    ]
   },
   {
     "product_name": "CompAnalyst",
     "vendor_company": "Salary.com",
     "website": "https://www.salary.com/companalyst",
     "can_be_primary": false,
-    "suggested_categories": ["Compensation"]
+    "suggested_categories": [
+      "Compensation"
+    ]
   },
   {
     "product_name": "Payfactors",
     "vendor_company": "Payfactors",
     "website": "https://www.payfactors.com",
     "can_be_primary": false,
-    "suggested_categories": ["Compensation"]
+    "suggested_categories": [
+      "Compensation"
+    ]
   },
   {
     "product_name": "Pave",
     "vendor_company": "Pave",
     "website": "https://www.pave.com",
     "can_be_primary": false,
-    "suggested_categories": ["Compensation"]
+    "suggested_categories": [
+      "Compensation"
+    ]
   },
   {
     "product_name": "Pequity",
     "vendor_company": "Pequity",
     "website": "https://www.pequity.com",
     "can_be_primary": false,
-    "suggested_categories": ["Compensation"]
+    "suggested_categories": [
+      "Compensation"
+    ]
   },
   {
     "product_name": "Syndio",
     "vendor_company": "Syndio",
     "website": "https://synd.io",
     "can_be_primary": false,
-    "suggested_categories": ["Compensation"]
+    "suggested_categories": [
+      "Compensation"
+    ]
   },
   {
     "product_name": "CompXL",
     "vendor_company": "CompXL",
     "website": "https://www.compxl.com",
     "can_be_primary": false,
-    "suggested_categories": ["Compensation"]
+    "suggested_categories": [
+      "Compensation"
+    ]
   },
   {
     "product_name": "WorkBright",
     "vendor_company": "WorkBright",
     "website": "https://workbright.com",
     "can_be_primary": false,
-    "suggested_categories": ["Onboarding"]
+    "suggested_categories": [
+      "Onboarding"
+    ]
   },
   {
     "product_name": "Enboarder",
     "vendor_company": "Enboarder",
     "website": "https://enboarder.com",
     "can_be_primary": false,
-    "suggested_categories": ["Onboarding"]
+    "suggested_categories": [
+      "Onboarding"
+    ]
   },
   {
     "product_name": "Click Boarding",
     "vendor_company": "Click Boarding",
     "website": "https://www.clickboarding.com",
     "can_be_primary": false,
-    "suggested_categories": ["Onboarding"]
+    "suggested_categories": [
+      "Onboarding"
+    ]
   },
   {
     "product_name": "Sapling",
     "vendor_company": "Kallidus",
     "website": "https://www.saplinghr.com",
     "can_be_primary": false,
-    "suggested_categories": ["Onboarding", "Core HR"]
+    "suggested_categories": [
+      "Onboarding",
+      "Core HR / Employee Files"
+    ]
   },
   {
     "product_name": "Talmundo",
     "vendor_company": "Talmundo",
     "website": "https://www.talmundo.com",
     "can_be_primary": false,
-    "suggested_categories": ["Onboarding"]
+    "suggested_categories": [
+      "Onboarding"
+    ]
   },
   {
     "product_name": "Eightfold AI",
     "vendor_company": "Eightfold",
     "website": "https://eightfold.ai",
     "can_be_primary": false,
-    "suggested_categories": ["AI", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS",
+      "Performance"
+    ]
   },
   {
     "product_name": "Phenom",
     "vendor_company": "Phenom",
     "website": "https://www.phenom.com",
     "can_be_primary": false,
-    "suggested_categories": ["AI", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Beamery",
     "vendor_company": "Beamery",
     "website": "https://beamery.com",
     "can_be_primary": false,
-    "suggested_categories": ["AI", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Paradox (Olivia)",
     "vendor_company": "Paradox",
     "website": "https://www.paradox.ai",
     "can_be_primary": false,
-    "suggested_categories": ["AI", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "HiredScore",
     "vendor_company": "HiredScore",
     "website": "https://hiredscore.com",
     "can_be_primary": false,
-    "suggested_categories": ["AI", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Textio",
     "vendor_company": "Textio",
     "website": "https://textio.com",
     "can_be_primary": false,
-    "suggested_categories": ["AI", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "Pymetrics",
     "vendor_company": "Harver",
     "website": "https://harver.com",
     "can_be_primary": false,
-    "suggested_categories": ["AI", "Recruiting/ATS"]
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
   },
   {
     "product_name": "SAP Concur",
     "vendor_company": "SAP",
     "website": "https://www.concur.com",
     "can_be_primary": false,
-    "suggested_categories": ["Expense"]
+    "suggested_categories": [
+      "Expense"
+    ]
   },
   {
     "product_name": "Expensify",
     "vendor_company": "Expensify",
     "website": "https://www.expensify.com",
     "can_be_primary": false,
-    "suggested_categories": ["Expense"]
+    "suggested_categories": [
+      "Expense"
+    ]
   },
   {
     "product_name": "Certify",
     "vendor_company": "Emburse",
     "website": "https://www.emburse.com/certify",
     "can_be_primary": false,
-    "suggested_categories": ["Expense"]
+    "suggested_categories": [
+      "Expense"
+    ]
   },
   {
     "product_name": "Navan",
     "vendor_company": "Navan",
     "website": "https://navan.com",
     "can_be_primary": false,
-    "suggested_categories": ["Expense"]
+    "suggested_categories": [
+      "Expense"
+    ]
   },
   {
     "product_name": "Rydoo",
     "vendor_company": "Rydoo",
     "website": "https://www.rydoo.com",
     "can_be_primary": false,
-    "suggested_categories": ["Expense"]
+    "suggested_categories": [
+      "Expense"
+    ]
   },
   {
     "product_name": "Brex",
     "vendor_company": "Brex",
     "website": "https://www.brex.com",
     "can_be_primary": false,
-    "suggested_categories": ["Expense"]
+    "suggested_categories": [
+      "Expense"
+    ]
   },
   {
     "product_name": "Spendesk",
     "vendor_company": "Spendesk",
     "website": "https://www.spendesk.com",
     "can_be_primary": false,
-    "suggested_categories": ["Expense"]
+    "suggested_categories": [
+      "Expense"
+    ]
   },
   {
     "product_name": "Emburse",
     "vendor_company": "Emburse",
     "website": "https://www.emburse.com",
     "can_be_primary": false,
-    "suggested_categories": ["Expense"]
+    "suggested_categories": [
+      "Expense"
+    ]
   },
   {
     "product_name": "Zoho Expense",
     "vendor_company": "Zoho",
     "website": "https://www.zoho.com/expense",
     "can_be_primary": false,
-    "suggested_categories": ["Expense"]
+    "suggested_categories": [
+      "Expense"
+    ]
   },
   {
     "product_name": "Okta",
     "vendor_company": "Okta",
     "website": "https://www.okta.com",
     "can_be_primary": false,
-    "suggested_categories": ["SSO"]
+    "suggested_categories": [
+      "SSO"
+    ]
   },
   {
     "product_name": "Microsoft Entra ID",
     "vendor_company": "Microsoft",
     "website": "https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-id",
     "can_be_primary": false,
-    "suggested_categories": ["SSO"]
+    "suggested_categories": [
+      "SSO"
+    ]
   },
   {
     "product_name": "OneLogin",
     "vendor_company": "One Identity",
     "website": "https://www.onelogin.com",
     "can_be_primary": false,
-    "suggested_categories": ["SSO"]
+    "suggested_categories": [
+      "SSO"
+    ]
   },
   {
     "product_name": "Ping Identity",
     "vendor_company": "Ping Identity",
     "website": "https://www.pingidentity.com",
     "can_be_primary": false,
-    "suggested_categories": ["SSO"]
+    "suggested_categories": [
+      "SSO"
+    ]
   },
   {
     "product_name": "JumpCloud",
     "vendor_company": "JumpCloud",
     "website": "https://jumpcloud.com",
     "can_be_primary": false,
-    "suggested_categories": ["SSO"]
+    "suggested_categories": [
+      "SSO"
+    ]
   },
   {
     "product_name": "Google Workspace",
     "vendor_company": "Google",
     "website": "https://workspace.google.com",
     "can_be_primary": false,
-    "suggested_categories": ["SSO"]
+    "suggested_categories": [
+      "SSO"
+    ]
   },
   {
     "product_name": "Workday Financials",
     "vendor_company": "Workday",
     "website": "https://www.workday.com/en-us/products/financial-management/overview.html",
     "can_be_primary": false,
-    "suggested_categories": ["ERP/General Ledger"]
+    "suggested_categories": [
+      "ERP / General Ledger"
+    ]
   },
   {
     "product_name": "SAP S/4HANA",
     "vendor_company": "SAP",
     "website": "https://www.sap.com/products/erp/s4hana.html",
     "can_be_primary": false,
-    "suggested_categories": ["ERP/General Ledger"]
+    "suggested_categories": [
+      "ERP / General Ledger"
+    ]
   },
   {
     "product_name": "Oracle Fusion",
     "vendor_company": "Oracle",
     "website": "https://www.oracle.com/erp",
     "can_be_primary": false,
-    "suggested_categories": ["ERP/General Ledger"]
+    "suggested_categories": [
+      "ERP / General Ledger"
+    ]
   },
   {
     "product_name": "Microsoft Dynamics 365",
     "vendor_company": "Microsoft",
     "website": "https://dynamics.microsoft.com",
     "can_be_primary": false,
-    "suggested_categories": ["ERP/General Ledger"]
+    "suggested_categories": [
+      "ERP / General Ledger"
+    ]
   },
   {
     "product_name": "NetSuite",
     "vendor_company": "Oracle",
     "website": "https://www.netsuite.com",
     "can_be_primary": false,
-    "suggested_categories": ["ERP/General Ledger"]
+    "suggested_categories": [
+      "ERP / General Ledger"
+    ]
   },
   {
     "product_name": "Sage Intacct",
     "vendor_company": "Sage",
     "website": "https://www.sage.com/en-us/products/sage-intacct",
     "can_be_primary": false,
-    "suggested_categories": ["ERP/General Ledger"]
+    "suggested_categories": [
+      "ERP / General Ledger"
+    ]
   },
   {
     "product_name": "Infor CloudSuite HCM",
     "vendor_company": "Infor",
     "website": "https://www.infor.com/products/cloudsuite-hcm",
     "can_be_primary": true,
-    "suggested_categories": ["Core HR", "Payroll", "Benefits Admin", "Time & Attendance", "Onboarding", "Performance", "Compensation"]
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Payroll",
+      "Benefits Admin",
+      "Time & Attendance",
+      "Onboarding",
+      "Performance",
+      "Compensation",
+      "Primary Vendor"
+    ]
   },
   {
     "product_name": "Epicor HCM",
     "vendor_company": "Epicor",
     "website": "https://www.epicor.com",
     "can_be_primary": false,
-    "suggested_categories": ["ERP/General Ledger", "Core HR"]
+    "suggested_categories": [
+      "ERP / General Ledger",
+      "Core HR / Employee Files"
+    ]
   },
   {
     "product_name": "ADP GlobalView",
     "vendor_company": "ADP",
     "website": "https://www.adp.com/what-we-offer/products/adp-globalview-hcm.aspx",
     "can_be_primary": false,
-    "suggested_categories": ["Global Payroll"]
+    "suggested_categories": [
+      "Global Payroll"
+    ]
   },
   {
     "product_name": "CloudPay",
     "vendor_company": "CloudPay",
     "website": "https://www.cloudpay.net",
     "can_be_primary": false,
-    "suggested_categories": ["Global Payroll"]
+    "suggested_categories": [
+      "Global Payroll"
+    ]
   },
   {
     "product_name": "Papaya Global",
     "vendor_company": "Papaya Global",
     "website": "https://www.papayaglobal.com",
     "can_be_primary": false,
-    "suggested_categories": ["Global Payroll"]
+    "suggested_categories": [
+      "Global Payroll"
+    ]
   },
   {
     "product_name": "Deel",
     "vendor_company": "Deel",
     "website": "https://www.deel.com",
-    "can_be_primary": false,
-    "suggested_categories": ["Global Payroll"]
+    "can_be_primary": true,
+    "suggested_categories": [
+      "Global Payroll",
+      "Primary Vendor",
+      "Payroll"
+    ]
   },
   {
     "product_name": "Remote",
     "vendor_company": "Remote",
     "website": "https://remote.com",
     "can_be_primary": false,
-    "suggested_categories": ["Global Payroll"]
+    "suggested_categories": [
+      "Global Payroll"
+    ]
   },
   {
     "product_name": "Multiplier",
     "vendor_company": "Multiplier",
     "website": "https://www.usemultiplier.com",
     "can_be_primary": false,
-    "suggested_categories": ["Global Payroll"]
+    "suggested_categories": [
+      "Global Payroll"
+    ]
   },
   {
     "product_name": "Oyster",
     "vendor_company": "Oyster",
     "website": "https://www.oysterhr.com",
     "can_be_primary": false,
-    "suggested_categories": ["Global Payroll"]
+    "suggested_categories": [
+      "Global Payroll"
+    ]
   },
   {
     "product_name": "Velocity Global",
     "vendor_company": "Velocity Global",
     "website": "https://velocityglobal.com",
     "can_be_primary": false,
-    "suggested_categories": ["Global Payroll"]
+    "suggested_categories": [
+      "Global Payroll"
+    ]
   },
   {
     "product_name": "Alight Solutions",
     "vendor_company": "Alight",
     "website": "https://alight.com",
     "can_be_primary": false,
-    "suggested_categories": ["Benefits Admin", "Payroll"]
+    "suggested_categories": [
+      "Benefits Admin",
+      "Payroll"
+    ]
   },
   {
     "product_name": "DOMO",
     "vendor_company": "DOMO",
     "website": "https://www.domo.com",
     "can_be_primary": false,
-    "suggested_categories": ["AI"]
+    "suggested_categories": [
+      "Performance",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Visier",
     "vendor_company": "Visier",
     "website": "https://www.visier.com",
     "can_be_primary": false,
-    "suggested_categories": ["AI"]
+    "suggested_categories": [
+      "Performance",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Glint",
     "vendor_company": "LinkedIn",
     "website": "https://glintinc.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Qualtrics EmployeeXM",
     "vendor_company": "Qualtrics",
     "website": "https://www.qualtrics.com/employee-experience",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Medallia",
     "vendor_company": "Medallia",
     "website": "https://www.medallia.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Achievers",
     "vendor_company": "Achievers",
     "website": "https://www.achievers.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Workhuman",
     "vendor_company": "Workhuman",
     "website": "https://www.workhuman.com",
     "can_be_primary": false,
-    "suggested_categories": ["Performance"]
+    "suggested_categories": [
+      "Performance",
+      "Engagement"
+    ]
   },
   {
     "product_name": "Compa",
     "vendor_company": "Compa",
     "website": "https://www.compa.as",
     "can_be_primary": false,
-    "suggested_categories": ["Compensation"]
+    "suggested_categories": [
+      "Compensation"
+    ]
   },
   {
     "product_name": "Carta Total Comp",
     "vendor_company": "Carta",
     "website": "https://carta.com/total-comp",
     "can_be_primary": false,
-    "suggested_categories": ["Compensation"]
+    "suggested_categories": [
+      "Compensation"
+    ]
   },
   {
     "product_name": "Korn Ferry Pay",
     "vendor_company": "Korn Ferry",
     "website": "https://www.kornferry.com/solutions/technology/hay-group-software",
     "can_be_primary": false,
-    "suggested_categories": ["Compensation"]
+    "suggested_categories": [
+      "Compensation"
+    ]
+  },
+  {
+    "product_name": "Darwinbox",
+    "vendor_company": "Darwinbox",
+    "website": "https://darwinbox.com",
+    "can_be_primary": true,
+    "suggested_categories": [
+      "Primary Vendor",
+      "Core HR / Employee Files",
+      "Payroll",
+      "Onboarding",
+      "Performance",
+      "Recruiting / ATS",
+      "Learning / LMS"
+    ]
+  },
+  {
+    "product_name": "Personio",
+    "vendor_company": "Personio",
+    "website": "https://www.personio.com",
+    "can_be_primary": true,
+    "suggested_categories": [
+      "Primary Vendor",
+      "Core HR / Employee Files",
+      "Payroll",
+      "Onboarding",
+      "Recruiting / ATS"
+    ]
+  },
+  {
+    "product_name": "Justworks",
+    "vendor_company": "Justworks",
+    "website": "https://justworks.com",
+    "can_be_primary": true,
+    "suggested_categories": [
+      "Primary Vendor",
+      "Payroll",
+      "Benefits Admin"
+    ]
+  },
+  {
+    "product_name": "ProLiant",
+    "vendor_company": "ProLiant",
+    "website": "https://proliant.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Payroll"
+    ]
+  },
+  {
+    "product_name": "GoCo",
+    "vendor_company": "GoCo",
+    "website": "https://www.goco.io",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Benefits Admin",
+      "Onboarding"
+    ]
+  },
+  {
+    "product_name": "Flock",
+    "vendor_company": "Flock",
+    "website": "https://flockhealthinsurance.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
+  },
+  {
+    "product_name": "Selerix",
+    "vendor_company": "Selerix",
+    "website": "https://www.selerix.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
+  },
+  {
+    "product_name": "Empyrean",
+    "vendor_company": "Empyrean",
+    "website": "https://goempyrean.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Benefits Admin"
+    ]
+  },
+  {
+    "product_name": "TeamBridge",
+    "vendor_company": "TeamBridge",
+    "website": "https://teambridge.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
+  },
+  {
+    "product_name": "Quinyx",
+    "vendor_company": "Quinyx",
+    "website": "https://www.quinyx.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Time & Attendance"
+    ]
+  },
+  {
+    "product_name": "PerformYard",
+    "vendor_company": "PerformYard",
+    "website": "https://www.performyard.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Performance"
+    ]
+  },
+  {
+    "product_name": "Confirm",
+    "vendor_company": "Confirm",
+    "website": "https://www.confirm.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Performance"
+    ]
+  },
+  {
+    "product_name": "ChartHop",
+    "vendor_company": "ChartHop",
+    "website": "https://www.charthop.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Core HR / Employee Files",
+      "Performance",
+      "Compensation",
+      "Engagement"
+    ]
+  },
+  {
+    "product_name": "HRSoft",
+    "vendor_company": "HRSoft",
+    "website": "https://www.hrsoft.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Compensation"
+    ]
+  },
+  {
+    "product_name": "Payscale",
+    "vendor_company": "Payscale",
+    "website": "https://www.payscale.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Compensation"
+    ]
+  },
+  {
+    "product_name": "Kamsa",
+    "vendor_company": "Kamsa",
+    "website": "https://www.kamsa.co",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Compensation"
+    ]
+  },
+  {
+    "product_name": "CandorIQ",
+    "vendor_company": "CandorIQ",
+    "website": "https://www.candoriq.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Compensation"
+    ]
+  },
+  {
+    "product_name": "Beqom",
+    "vendor_company": "Beqom",
+    "website": "https://www.beqom.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Compensation"
+    ]
+  },
+  {
+    "product_name": "LearnUpon",
+    "vendor_company": "LearnUpon",
+    "website": "https://www.learnupon.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
+  },
+  {
+    "product_name": "Schoox",
+    "vendor_company": "Schoox",
+    "website": "https://www.schoox.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
+  },
+  {
+    "product_name": "SkyPrep",
+    "vendor_company": "SkyPrep",
+    "website": "https://skyprep.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
+  },
+  {
+    "product_name": "Coassemble",
+    "vendor_company": "Coassemble",
+    "website": "https://coassemble.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
+  },
+  {
+    "product_name": "Tovuti",
+    "vendor_company": "Tovuti",
+    "website": "https://www.tovutilms.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Learning / LMS"
+    ]
+  },
+  {
+    "product_name": "Fountain",
+    "vendor_company": "Fountain",
+    "website": "https://www.fountain.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
+  },
+  {
+    "product_name": "Bullhorn",
+    "vendor_company": "Bullhorn",
+    "website": "https://www.bullhorn.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
+  },
+  {
+    "product_name": "Avature",
+    "vendor_company": "Avature",
+    "website": "https://www.avature.net",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Recruiting / ATS"
+    ]
+  },
+  {
+    "product_name": "Ramp",
+    "vendor_company": "Ramp",
+    "website": "https://ramp.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Expense"
+    ]
+  },
+  {
+    "product_name": "Center",
+    "vendor_company": "Center",
+    "website": "https://www.center.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Expense"
+    ]
+  },
+  {
+    "product_name": "G-P",
+    "vendor_company": "G-P",
+    "website": "https://www.g-p.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Global Payroll"
+    ]
+  },
+  {
+    "product_name": "RemoFirst",
+    "vendor_company": "RemoFirst",
+    "website": "https://www.remofirst.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Global Payroll"
+    ]
+  },
+  {
+    "product_name": "Activpayroll",
+    "vendor_company": "Activpayroll",
+    "website": "https://www.activpayroll.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "Global Payroll"
+    ]
+  },
+  {
+    "product_name": "QuickBooks Online",
+    "vendor_company": "Intuit",
+    "website": "https://quickbooks.intuit.com",
+    "can_be_primary": false,
+    "suggested_categories": [
+      "ERP / General Ledger"
+    ]
   }
 ]

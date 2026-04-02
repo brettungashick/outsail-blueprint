@@ -8,7 +8,7 @@ export const HCM_CAPABILITIES = [
   'Compensation',
   'Learning/LMS',
   'Recruiting/ATS',
-  'AI',
+  'Engagement',
   'Expense',
   'SSO',
   'ERP/General Ledger',
@@ -52,7 +52,7 @@ export const CATEGORY_TO_SYSTEM_TYPE: Record<string, string> = {
   'Compensation': 'other',
   'Learning/LMS': 'lms',
   'Recruiting/ATS': 'ats',
-  'AI': 'point_solution',
+  'Engagement': 'point_solution',
   'Expense': 'point_solution',
   'SSO': 'point_solution',
   'ERP/General Ledger': 'point_solution',
@@ -62,7 +62,7 @@ export const CATEGORY_TO_SYSTEM_TYPE: Record<string, string> = {
 
 // Categories typically covered by add-on point solutions (not primary HCM)
 export const POINT_SOLUTION_CATEGORIES = [
-  'AI',
+  'Engagement',
   'Expense',
   'SSO',
   'ERP/General Ledger',
