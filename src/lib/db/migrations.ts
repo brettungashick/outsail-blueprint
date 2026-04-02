@@ -379,6 +379,8 @@ const ALTER_COLUMNS: Array<{ col: string; sql: string }> = [
   { col: 'users.name',                      sql: `ALTER TABLE users ADD COLUMN name TEXT` },
   { col: 'users.role',                      sql: `ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'advisor'` },
   { col: 'users.organization_id',           sql: `ALTER TABLE users ADD COLUMN organization_id TEXT` },
+  { col: 'users.password_hash',             sql: `ALTER TABLE users ADD COLUMN password_hash TEXT` },
+  { col: 'users.must_change_password',      sql: `ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0` },
   { col: 'users.created_at',               sql: `ALTER TABLE users ADD COLUMN created_at INTEGER` },
   { col: 'users.updated_at',               sql: `ALTER TABLE users ADD COLUMN updated_at INTEGER` },
 
