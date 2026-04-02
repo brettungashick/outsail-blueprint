@@ -415,6 +415,7 @@ const ALTER_COLUMNS: Array<{ col: string; sql: string }> = [
   { col: 'projects.generation_count',       sql: `ALTER TABLE projects ADD COLUMN generation_count INTEGER DEFAULT 0` },
   { col: 'projects.generation_metadata',    sql: `ALTER TABLE projects ADD COLUMN generation_metadata TEXT` },
   { col: 'projects.self_service_enabled',   sql: `ALTER TABLE projects ADD COLUMN self_service_enabled INTEGER DEFAULT 0` },
+  { col: 'projects.reopen_notes',           sql: `ALTER TABLE projects ADD COLUMN reopen_notes TEXT` },
   { col: 'projects.scheduling_link',        sql: `ALTER TABLE projects ADD COLUMN scheduling_link TEXT` },
   { col: 'projects.question_guide',         sql: `ALTER TABLE projects ADD COLUMN question_guide TEXT` },
   { col: 'projects.created_by',             sql: `ALTER TABLE projects ADD COLUMN created_by TEXT` },

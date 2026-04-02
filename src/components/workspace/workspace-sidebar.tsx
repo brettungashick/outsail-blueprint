@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, ClipboardList, Layers, MessageCircle, FileText, Map, FileOutput, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Layers, MessageCircle, FileText, Map, FileOutput, ChevronLeft, ChevronRight, LogOut, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -13,6 +13,7 @@ interface WorkspaceSidebarProps {
   userName?: string
   companyName?: string
   techStackComplete?: boolean
+  selfServiceEnabled?: boolean
   logoUrl?: string
 }
 
@@ -23,6 +24,7 @@ export function WorkspaceSidebar({
   userName,
   companyName,
   techStackComplete = false,
+  selfServiceEnabled = false,
   logoUrl,
 }: WorkspaceSidebarProps) {
   const pathname = usePathname()
@@ -60,13 +62,14 @@ export function WorkspaceSidebar({
 
   // Nav item definitions — Discovery and Summary are gated on techStackComplete
   const NAV_ITEMS = [
-    { label: 'Overview',   href: '/workspace',                   icon: LayoutDashboard, exact: true,  disabled: false,            gated: false },
-    { label: 'Intake',     href: '/workspace/intake',            icon: ClipboardList,   exact: true,  disabled: false,            gated: false },
-    { label: 'Tech Stack', href: '/workspace/intake/tech-stack', icon: Layers,          exact: false, disabled: false,            gated: false },
-    { label: 'Discovery',  href: '/workspace/intake/discovery',  icon: MessageCircle,   exact: false, disabled: !techStackComplete, gated: !techStackComplete },
-    { label: 'Summary',    href: '/workspace/intake/summary',    icon: FileText,        exact: false, disabled: !techStackComplete, gated: !techStackComplete },
-    { label: 'Blueprint',  href: null,                           icon: Map,             exact: false, disabled: true,             gated: false },
-    { label: 'Outputs',    href: null,                           icon: FileOutput,      exact: false, disabled: true,             gated: false },
+    { label: 'Overview',             href: '/workspace',                   icon: LayoutDashboard, exact: true,  disabled: false,             gated: false },
+    { label: 'Intake',               href: '/workspace/intake',            icon: ClipboardList,   exact: true,  disabled: false,             gated: false },
+    { label: 'Tech Stack',           href: '/workspace/intake/tech-stack', icon: Layers,          exact: false, disabled: false,             gated: false },
+    { label: 'Discovery',            href: '/workspace/intake/discovery',  icon: MessageCircle,   exact: false, disabled: !techStackComplete, gated: !techStackComplete },
+    { label: 'Summary',              href: '/workspace/intake/summary',    icon: FileText,        exact: false, disabled: !techStackComplete, gated: !techStackComplete },
+    ...(selfServiceEnabled ? [{ label: 'Blueprint Assistant', href: '/workspace/chat', icon: Bot, exact: false, disabled: false, gated: false }] : []),
+    { label: 'Blueprint',            href: null,                           icon: Map,             exact: false, disabled: true,              gated: false },
+    { label: 'Outputs',              href: null,                           icon: FileOutput,      exact: false, disabled: true,              gated: false },
   ]
 
   return (

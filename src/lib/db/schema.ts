@@ -86,6 +86,7 @@ export const projects = sqliteTable('projects', {
   generation_count: integer('generation_count').default(0),
   generation_metadata: text('generation_metadata'), // JSON: which sessions/transcripts included
   self_service_enabled: integer('self_service_enabled', { mode: 'boolean' }).default(false),
+  reopen_notes: text('reopen_notes'),       // advisor note sent back to client for more detail
   created_by: text('created_by').references(() => users.id),
   created_at: integer('created_at', { mode: 'timestamp' }).$defaultFn(
     () => new Date()

@@ -99,7 +99,8 @@ export async function POST(
     // Send magic link
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
     const token = await createMagicToken(body.email.toLowerCase())
-    const magicLinkUrl = `${appUrl}/api/auth/verify?token=${token}`
+    const redirectPath = encodeURIComponent(`/workspace/stakeholder-chat/${newSessionId}`)
+    const magicLinkUrl = `${appUrl}/api/auth/verify?token=${token}&redirect=${redirectPath}`
 
     try {
       const resend = new Resend(process.env.RESEND_API_KEY)

@@ -124,33 +124,56 @@ If they have a primary platform, acknowledge it by name (e.g., "I can see you're
 CRITICAL: Only respond with your conversational message. No JSON, no markdown headers, no lists unless it flows naturally in conversation.`
 }
 
-function buildDeepDiscoverySystemPrompt(context: string, focusAreas?: string[]): string {
+function buildDeepDiscoverySystemPrompt(params: {
+  context: string
+  focusAreas?: string[]
+  participantRole?: string | null
+  recommendedSections?: string
+  priorData?: string
+  stakeholderContext?: string
+}): string {
+  const { context, focusAreas, participantRole, recommendedSections, priorData, stakeholderContext } = params
+
   const focusSection = focusAreas?.length
     ? `\nFOCUS AREAS FOR THIS SESSION: ${focusAreas.join(', ')}`
     : ''
 
+  const sectionsSection = recommendedSections
+    ? `\nBLUEPRINT SECTIONS TO COVER:\n${recommendedSections}`
+    : ''
+
+  const priorSection = priorData
+    ? `\nWHAT WE ALREADY KNOW (from discovery chat + prior sessions):\n${priorData}`
+    : ''
+
+  const participantSection = participantRole
+    ? `\nYOU ARE SPEAKING WITH: ${participantRole}. Tailor your questions to their domain expertise.`
+    : ''
+
+  const stakeholderSection = stakeholderContext ?? ''
+
   return `You are an OutSail Blueprint assistant — an expert HR technology consultant conducting a deep discovery session.
 
 CLIENT CONTEXT:
-${context}${focusSection}
+${context}${focusSection}${sectionsSection}${priorSection}${participantSection}${stakeholderSection}
 
 YOUR GOAL:
-Conduct a thorough requirements discovery session covering:
-- Detailed process flows and pain points
-- Integration requirements and complexity
-- Compliance and regulatory needs
-- Reporting and analytics requirements
-- User populations and adoption challenges
-- Section-specific deep requirements
+Conduct a thorough requirements discovery session. For each Blueprint section:
+- Ask about current processes in detail (triggers, actors, steps, exceptions, volumes)
+- Probe for pain points and desired future state
+- Understand integration requirements and dependencies
+- Capture compliance, regulatory, and reporting needs
+- Note user population and adoption considerations
 
 GUIDELINES:
-- Go deep on each topic area before moving on
-- Ask clarifying follow-up questions
-- When a section feels complete, explicitly summarize what you captured before moving to the next
-- Track coverage across all focus areas
-- When most sections have been addressed, suggest wrapping up
+- Be warm and consultative — this feels like a conversation with a trusted advisor, not an interrogation
+- Ask one focused question at a time; follow up on partial answers before moving on
+- Reference what you already know to avoid repetition ("You mentioned earlier that payroll runs bi-weekly — can you tell me more about...")
+- When a section feels thoroughly covered, summarize and transition naturally: "I have a good picture of your payroll setup. Let's move to benefits..."
+- When most sections are addressed, proactively suggest wrapping up
+- Track which sections have been covered; the client can stop early at any time
 
-CRITICAL: Only respond with your conversational message. No JSON, no markdown headers.`
+CRITICAL: Only respond with your conversational message. No JSON, no markdown headers, no lists unless it flows naturally.`
 }
 
 async function callAnthropicNonStreaming(params: {
@@ -186,11 +209,17 @@ async function callAnthropicNonStreaming(params: {
 }
 
 async function extractStructuredData(
-  conversationMessages: Array<{ role: string; content: string }>
+  conversationMessages: Array<{ role: string; content: string }>,
+  sessionType: 'discovery' | 'deep_discovery' = 'discovery',
+  sectionNames?: string[]
 ): Promise<Extractions> {
   const conversationText = conversationMessages
     .map((m) => `${m.role === 'assistant' ? 'Consultant' : 'Client'}: ${m.content}`)
     .join('\n\n')
+
+  const sectionsNote = sectionNames?.length
+    ? `topics_covered: array of section names from this list that have been adequately covered: [${sectionNames.map((s) => `"${s}"`).join(', ')}]. Only include a section when meaningful, substantive information was shared about it.`
+    : `topics_covered: array containing any of "pain_points", "vendor_landscape", "complexities" — only include a topic when meaningful info was shared.`
 
   const extractionSystem = `You analyze HR technology discovery conversations and extract structured information. Return ONLY valid JSON matching the exact schema below, with no other text, explanation, or markdown.
 
@@ -212,8 +241,8 @@ JSON schema:
   "is_complete": false
 }
 
-topics_covered: array containing any of "pain_points", "vendor_landscape", "complexities" — only include a topic when meaningful info was shared.
-is_complete: true only when all three topics have been covered sufficiently.
+${sectionsNote}
+is_complete: ${sessionType === 'discovery' ? 'true only when all three topics (pain_points, vendor_landscape, complexities) have been covered sufficiently.' : 'always false for deep_discovery sessions — client ends the session manually.'}
 Only include items explicitly mentioned in the conversation.`
 
   try {
@@ -333,11 +362,76 @@ export async function POST(request: NextRequest) {
     .orderBy(asc(chatMessages.created_at))
     .all()
 
+  // Build the system prompt
   const context = buildProjectContext(project, systems)
-  const systemPrompt =
-    sessionType === 'discovery'
-      ? buildDiscoverySystemPrompt(context)
-      : buildDeepDiscoverySystemPrompt(context, focusAreas)
+
+  // For deep_discovery: build richer context from recommended sections + prior data
+  let sectionNames: string[] = []
+  let systemPrompt: string
+
+  if (sessionType === 'discovery') {
+    systemPrompt = buildDiscoverySystemPrompt(context)
+  } else {
+    // Parse recommended sections
+    let recommendedSectionsText = ''
+    if (project.recommended_sections) {
+      try {
+        const rs = JSON.parse(project.recommended_sections) as Array<{ key?: string; name?: string; title?: string; depth?: string; recommended_depth?: string }>
+        sectionNames = rs.map((s) => s.name ?? s.title ?? s.key ?? '').filter(Boolean)
+        recommendedSectionsText = rs.map((s) => `- ${s.name ?? s.title ?? s.key ?? 'Unknown'} (depth: ${s.depth ?? s.recommended_depth ?? 'standard'})`).join('\n')
+      } catch { /* skip */ }
+    }
+
+    // Build prior data summary from discovery_summary + approved transcript extractions
+    const priorParts: string[] = []
+    if (project.discovery_summary) {
+      try {
+        const ds = JSON.parse(project.discovery_summary) as { overview?: string; pain_points?: Array<{ description?: string }> }
+        if (ds.overview) priorParts.push(`Discovery overview: ${ds.overview}`)
+        if (ds.pain_points?.length) priorParts.push(`Pain points identified: ${ds.pain_points.map((p) => p.description).join('; ')}`)
+      } catch { priorParts.push(project.discovery_summary) }
+    }
+
+    // Load prior transcript approved extractions
+    const priorSessions = await db.select({
+      id: discoverySessions.id,
+      session_type: discoverySessions.session_type,
+      transcript_extractions: discoverySessions.transcript_extractions,
+    }).from(discoverySessions).where(eq(discoverySessions.project_id, projectId)).all()
+
+    for (const s of priorSessions) {
+      if (s.id === sessionId || !s.transcript_extractions) continue
+      try {
+        const te = JSON.parse(s.transcript_extractions) as { extractions?: Array<{ type: string; section: string; content: string; status: string }> }
+        const approved = te.extractions?.filter((e) => e.status === 'approved') ?? []
+        if (approved.length) {
+          priorParts.push(`From prior transcript (${approved.length} approved extractions): ${approved.slice(0, 5).map((e) => `[${e.section}] ${e.content}`).join(' | ')}${approved.length > 5 ? ` ...and ${approved.length - 5} more` : ''}`)
+        }
+      } catch { /* skip */ }
+    }
+
+    // Load stakeholder info from the session
+    const thisSession = await db.select({
+      participant_name: discoverySessions.participant_name,
+      participant_role: discoverySessions.participant_role,
+      focus_areas: discoverySessions.focus_areas,
+    }).from(discoverySessions).where(eq(discoverySessions.id, sessionId)).get()
+
+    let stakeholderContext = ''
+    if (thisSession?.participant_name) {
+      const focusAreasParsed: string[] = thisSession.focus_areas ? (() => { try { return JSON.parse(thisSession.focus_areas) as string[] } catch { return [] } })() : []
+      stakeholderContext = `\nYOU ARE SPEAKING WITH: ${thisSession.participant_name}${thisSession.participant_role ? ` (${thisSession.participant_role})` : ''}. ${focusAreasParsed.length ? `Their focus areas: ${focusAreasParsed.join(', ')}.` : ''}`
+    }
+
+    systemPrompt = buildDeepDiscoverySystemPrompt({
+      context,
+      focusAreas,
+      participantRole: thisSession?.participant_role,
+      recommendedSections: recommendedSectionsText || undefined,
+      priorData: priorParts.length ? priorParts.join('\n') : undefined,
+      stakeholderContext: stakeholderContext || undefined,
+    })
+  }
 
   const anthropicMessages = buildAnthropicMessages(history, message)
 
@@ -428,7 +522,7 @@ export async function POST(request: NextRequest) {
 
         let extractions: Extractions = {}
         if (allMessages.length > 1) {
-          extractions = await extractStructuredData(allMessages)
+          extractions = await extractStructuredData(allMessages, sessionType, sectionNames)
         }
 
         // Save assistant message with extractions

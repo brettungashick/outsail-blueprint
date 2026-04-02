@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Send, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react'
+import { Send, ChevronRight, ChevronLeft, CheckCircle2, LogOut } from 'lucide-react'
 import { createId } from '@paralleldrive/cuid2'
 import { cn } from '@/lib/utils'
 
@@ -38,7 +38,10 @@ export interface BlueprintChatProps {
   sessionId: string
   participant: { name: string; role: string; email: string }
   focusAreas?: string[]
+  recommendedSections?: Array<{ key: string; name: string }>
+  reopenNote?: string | null
   onComplete?: () => void
+  onDone?: () => Promise<void>
   initialMessages?: BlueprintChatMessage[]
 }
 
@@ -221,6 +224,80 @@ function ExtractionPanel({
   )
 }
 
+// ── Completeness panel (deep_discovery) ───────────────────────────────────
+
+function CompletenessPanel({
+  sections,
+  topicsCovered,
+  isOpen,
+  onToggle,
+}: {
+  sections: Array<{ key: string; name: string }>
+  topicsCovered: string[]
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  const coveredCount = sections.filter((s) =>
+    topicsCovered.some((t) => t.toLowerCase() === s.name.toLowerCase() || t.toLowerCase() === s.key.toLowerCase())
+  ).length
+
+  return (
+    <div
+      className={cn(
+        'flex flex-col border-l border-outsail-gray-200 bg-white transition-all duration-200 flex-shrink-0',
+        isOpen ? 'w-72' : 'w-10'
+      )}
+    >
+      <button
+        onClick={onToggle}
+        className="flex items-center justify-center h-12 border-b border-outsail-gray-200 text-outsail-gray-600 hover:text-outsail-navy transition-colors flex-shrink-0"
+        title={isOpen ? 'Collapse panel' : 'Section coverage'}
+      >
+        {isOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+      </button>
+
+      {isOpen && (
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-label font-semibold text-outsail-navy">Section Coverage</p>
+            <span className="text-xs text-outsail-gray-600">{coveredCount}/{sections.length}</span>
+          </div>
+
+          {sections.length === 0 ? (
+            <p className="text-xs text-outsail-gray-600 italic">No sections defined yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {sections.map((s) => {
+                const covered = topicsCovered.some(
+                  (t) => t.toLowerCase() === s.name.toLowerCase() || t.toLowerCase() === s.key.toLowerCase()
+                )
+                return (
+                  <li key={s.key} className="flex items-center gap-2">
+                    {covered ? (
+                      <CheckCircle2 className="w-4 h-4 text-outsail-teal flex-shrink-0" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-outsail-gray-200 flex-shrink-0" />
+                    )}
+                    <span className={cn('text-xs', covered ? 'text-outsail-teal font-medium' : 'text-outsail-gray-600')}>
+                      {s.name}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          {coveredCount === sections.length && sections.length > 0 && (
+            <div className="p-2 bg-outsail-teal-light rounded-lg">
+              <p className="text-xs text-outsail-teal font-medium">All sections covered! You can wrap up when ready.</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 export function BlueprintChat({
@@ -229,7 +306,10 @@ export function BlueprintChat({
   sessionId,
   participant,
   focusAreas,
+  recommendedSections,
+  reopenNote,
   onComplete,
+  onDone,
   initialMessages = [],
 }: BlueprintChatProps) {
   const router = useRouter()
@@ -241,6 +321,7 @@ export function BlueprintChat({
   const [topicsCovered, setTopicsCovered] = useState<string[]>([])
   const [isPanelOpen, setIsPanelOpen] = useState(true)
   const [isCompleting, setIsCompleting] = useState(false)
+  const [isDoneLoading, setIsDoneLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -431,9 +512,44 @@ export function BlueprintChat({
   }
 
   const showTopicProgress = sessionType === 'discovery'
+  const isDeepDiscovery = sessionType === 'deep_discovery'
+
+  async function handleDone() {
+    if (!onDone) return
+    setIsDoneLoading(true)
+    try {
+      await onDone()
+    } finally {
+      setIsDoneLoading(false)
+    }
+  }
 
   return (
-    <div className="flex h-[calc(100vh-240px)] min-h-[480px] rounded-card border border-outsail-gray-200 overflow-hidden bg-white">
+    <div className="flex flex-col h-[calc(100vh-200px)] min-h-[520px]">
+      {/* ── Reopen note banner ─────────────────────────────────────────── */}
+      {reopenNote && (
+        <div className="mb-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-card">
+          <p className="text-xs font-semibold text-amber-800 mb-0.5">Note from your advisor:</p>
+          <p className="text-sm text-amber-700">{reopenNote}</p>
+        </div>
+      )}
+
+      {/* ── "I'm done" bar (deep_discovery only) ──────────────────────── */}
+      {isDeepDiscovery && onDone && (
+        <div className="flex items-center justify-between px-4 py-2.5 mb-3 bg-outsail-teal-light rounded-card border border-outsail-teal/20">
+          <p className="text-sm text-outsail-teal-dark font-medium">Ready to hand off to your advisor?</p>
+          <button
+            onClick={() => void handleDone()}
+            disabled={isDoneLoading || isStreaming}
+            className="flex items-center gap-2 px-4 py-1.5 bg-outsail-teal text-white text-sm font-medium rounded-lg hover:bg-outsail-teal-dark disabled:opacity-50 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            {isDoneLoading ? 'Finishing up…' : "I'm done — ready for review"}
+          </button>
+        </div>
+      )}
+
+    <div className="flex flex-1 rounded-card border border-outsail-gray-200 overflow-hidden bg-white min-h-0">
       {/* ── Chat area ─────────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Topic progress (discovery only) */}
@@ -524,13 +640,23 @@ export function BlueprintChat({
         </div>
       </div>
 
-      {/* ── Extraction panel ───────────────────────────────────────────── */}
-      <ExtractionPanel
-        extractions={extractions}
-        topicsCovered={topicsCovered}
-        isOpen={isPanelOpen}
-        onToggle={() => setIsPanelOpen((v) => !v)}
-      />
+      {/* ── Extraction panel (discovery) / Completeness panel (deep_discovery) ── */}
+      {isDeepDiscovery && recommendedSections ? (
+        <CompletenessPanel
+          sections={recommendedSections}
+          topicsCovered={topicsCovered}
+          isOpen={isPanelOpen}
+          onToggle={() => setIsPanelOpen((v) => !v)}
+        />
+      ) : (
+        <ExtractionPanel
+          extractions={extractions}
+          topicsCovered={topicsCovered}
+          isOpen={isPanelOpen}
+          onToggle={() => setIsPanelOpen((v) => !v)}
+        />
+      )}
+    </div>
     </div>
   )
 }

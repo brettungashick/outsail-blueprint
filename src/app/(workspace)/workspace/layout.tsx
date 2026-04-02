@@ -20,6 +20,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   let userName: string | undefined
   let companyName: string | undefined
   let techStackComplete = false
+  let selfServiceEnabled = false
 
   try {
     const user = await db
@@ -42,12 +43,13 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
 
     if (membership) {
       const project = await db
-        .select({ client_company_name: projects.client_company_name })
+        .select({ client_company_name: projects.client_company_name, self_service_enabled: projects.self_service_enabled })
         .from(projects)
         .where(eq(projects.id, membership.project_id))
         .get()
 
       companyName = project?.client_company_name ?? undefined
+      selfServiceEnabled = project?.self_service_enabled ?? false
 
       // Tech stack is complete if there's at least one primary system
       const primarySystem = await db
@@ -76,6 +78,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         userName={userName}
         companyName={companyName}
         techStackComplete={techStackComplete}
+        selfServiceEnabled={selfServiceEnabled}
         logoUrl={logoUrl ?? undefined}
       />
       <main className="flex-1 overflow-y-auto">
