@@ -43,22 +43,18 @@ export type IntegrationQuality =
   | 'partially_automated'
   | 'fully_manual'
 
-export type SectionKey =
-  | 'payroll'
-  | 'hris'
-  | 'ats'
-  | 'lms'
-  | 'performance'
-  | 'benefits'
-  | 'compensation'
-  | 'onboarding'
+// SectionKey is free-text to support dynamic AI-generated sections.
+// Common values: 'payroll' | 'hris' | 'ats' | 'lms' | 'performance' | 'benefits' | 'compensation' | 'onboarding'
+export type SectionKey = string
 
 export type SectionDepth = 'light' | 'standard' | 'deep'
 
 export type SectionStatus =
   | 'not_started'
+  | 'draft'
   | 'in_progress'
   | 'advisor_review'
+  | 'sent_to_client'
   | 'client_approved'
   | 'complete'
 

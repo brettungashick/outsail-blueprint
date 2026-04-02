@@ -11,8 +11,10 @@ export const dynamic = 'force-dynamic'
 
 const SECTION_STATUS_LABELS: Record<SectionStatus, string> = {
   not_started: 'Not Started',
+  draft: 'Draft',
   in_progress: 'In Progress',
   advisor_review: 'Advisor Review',
+  sent_to_client: 'Sent to Client',
   client_approved: 'Client Approved',
   complete: 'Complete',
 }
@@ -25,8 +27,10 @@ const DEPTH_LABELS: Record<SectionDepth, string> = {
 
 const STATUS_DOT: Record<SectionStatus, string> = {
   not_started: 'bg-outsail-gray-200',
+  draft: 'bg-outsail-amber',
   in_progress: 'bg-outsail-amber',
   advisor_review: 'bg-outsail-purple',
+  sent_to_client: 'bg-outsail-blue',
   client_approved: 'bg-outsail-teal',
   complete: 'bg-outsail-green',
 }

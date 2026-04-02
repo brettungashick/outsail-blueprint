@@ -266,26 +266,18 @@ export const blueprintSections = sqliteTable('blueprint_sections', {
     .notNull()
     .references(() => projects.id),
   section_name: text('section_name').notNull(),
-  section_key: text('section_key', {
-    enum: [
-      'payroll',
-      'hris',
-      'ats',
-      'lms',
-      'performance',
-      'benefits',
-      'compensation',
-      'onboarding',
-    ],
-  }).notNull(),
+  // section_key is free-text (not a strict enum) to support dynamic AI-generated sections
+  section_key: text('section_key').notNull(),
   depth: text('depth', { enum: ['light', 'standard', 'deep'] })
     .notNull()
     .default('standard'),
   status: text('status', {
     enum: [
       'not_started',
+      'draft',
       'in_progress',
       'advisor_review',
+      'sent_to_client',
       'client_approved',
       'complete',
     ],

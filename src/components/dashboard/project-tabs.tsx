@@ -6,6 +6,7 @@ import { Clock, Users, Plus, Trash2, ArrowUp, ArrowDown, Save, ChevronDown, Chev
 import type { SectionKey, SectionDepth, SectionStatus, ProjectTier, ProjectStatus } from '@/types'
 import { TechStackViz } from '@/components/tech-stack/tech-stack-viz'
 import type { TechStackSystemRow, IntegrationRow } from '@/components/tech-stack/tech-stack-builder'
+import { BlueprintTab } from './blueprint-tab'
 
 // ----------------------------------------------------------------
 // Exported interface — used by page.tsx
@@ -96,8 +97,10 @@ const STATUS_ORDER: ProjectStatus[] = [
 
 const SECTION_STATUS_LABELS: Record<SectionStatus, string> = {
   not_started:    'Not Started',
+  draft:          'Draft',
   in_progress:    'In Progress',
   advisor_review: 'Advisor Review',
+  sent_to_client: 'Sent to Client',
   client_approved:'Client Approved',
   complete:       'Complete',
 }
@@ -137,8 +140,10 @@ function formatAbsoluteDate(date: Date | null | undefined): string {
 function SectionStatusDot({ status }: { status: SectionStatus }) {
   const colorMap: Record<SectionStatus, string> = {
     not_started:    'bg-outsail-gray-200',
+    draft:          'bg-outsail-amber',
     in_progress:    'bg-outsail-amber',
     advisor_review: 'bg-outsail-purple',
+    sent_to_client: 'bg-outsail-blue',
     client_approved:'bg-outsail-teal',
     complete:       'bg-green-500',
   }
@@ -156,6 +161,75 @@ function Spinner({ className = 'w-4 h-4' }: { className?: string }) {
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
     </svg>
+  )
+}
+
+// ----------------------------------------------------------------
+// Generate Blueprint Button (used inside OverviewTab)
+// ----------------------------------------------------------------
+function GenerateBlueprintButton({ projectId }: { projectId: string }) {
+  const [generating, setGenerating] = useState(false)
+  const [progress, setProgress] = useState<string | null>(null)
+
+  async function handleClick() {
+    if (generating) return
+    setGenerating(true)
+    setProgress('Starting…')
+    try {
+      const res = await fetch('/api/ai/generate-blueprint', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId }),
+      })
+      if (!res.ok || !res.body) throw new Error('Failed')
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        const lines = buf.split('\n')
+        buf = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const ev = JSON.parse(line.slice(6)) as { type: string; index?: number; total?: number; section?: string }
+            if (ev.type === 'section_start') setProgress(`${ev.section} (${ev.index}/${ev.total})`)
+            if (ev.type === 'done') setProgress('Done!')
+          } catch { /* skip */ }
+        }
+      }
+      setTimeout(() => { window.location.reload() }, 800)
+    } catch {
+      alert('Blueprint generation failed. Please try again.')
+    } finally {
+      setGenerating(false)
+      setTimeout(() => setProgress(null), 2000)
+    }
+  }
+
+  return (
+    <button
+      onClick={() => void handleClick()}
+      disabled={generating}
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-outsail-teal text-white text-xs font-medium rounded-lg hover:bg-outsail-teal-dark disabled:opacity-50 transition-colors"
+    >
+      {generating ? (
+        <>
+          <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          {progress ?? 'Generating…'}
+        </>
+      ) : (
+        <>
+          <Wand2 className="w-3.5 h-3.5" />
+          Generate Blueprint
+        </>
+      )}
+    </button>
   )
 }
 
@@ -471,7 +545,12 @@ function OverviewTab({ project, blueprintSections }: ProjectTabsProps) {
       <div className="outsail-card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-header-sm text-outsail-navy">Blueprint Sections</h3>
-          <span className="text-sm font-medium text-outsail-gray-600">{overallCompleteness}% Complete</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-outsail-gray-600">{overallCompleteness}% Complete</span>
+            {(project.status === 'deep_discovery' || project.status === 'summary_approved' || project.status === 'blueprint_generation') && (
+              <GenerateBlueprintButton projectId={project.id} />
+            )}
+          </div>
         </div>
         {blueprintSections.length === 0 ? (
           <p className="text-body text-outsail-gray-600 py-4 text-center">No blueprint sections found for this project.</p>
@@ -2410,7 +2489,11 @@ export function ProjectTabs({ project, blueprintSections }: ProjectTabsProps) {
       {activeTab === 'pathway' && <PathwayTab project={project} />}
       {activeTab === 'sessions' && <SessionsTab project={project} />}
       {activeTab === 'blueprint' && (
-        <ComingSoon label="Blueprint" description="Blueprint generation will be available once discovery is complete." />
+        <BlueprintTab
+          projectId={project.id}
+          projectStatus={project.status}
+          companyName={project.client_company_name}
+        />
       )}
       {activeTab === 'outputs' && (
         <ComingSoon label="Outputs" description="Outputs will be available after Blueprint approval." />
