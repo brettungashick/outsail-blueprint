@@ -366,6 +366,19 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
       updated_at INTEGER
     )`,
   },
+  {
+    name: 'blueprint_comments',
+    sql: `CREATE TABLE IF NOT EXISTS blueprint_comments (
+      id TEXT PRIMARY KEY NOT NULL,
+      project_id TEXT NOT NULL,
+      section_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      parent_comment_id TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    )`,
+  },
 ]
 
 // ── ALTER TABLE statements (covers all non-PK columns for all tables) ─────────
@@ -584,6 +597,15 @@ const ALTER_COLUMNS: Array<{ col: string; sql: string }> = [
   // app_settings
   { col: 'app_settings.value',          sql: `ALTER TABLE app_settings ADD COLUMN value TEXT` },
   { col: 'app_settings.updated_at',     sql: `ALTER TABLE app_settings ADD COLUMN updated_at INTEGER` },
+
+  // blueprint_comments
+  { col: 'blueprint_comments.project_id',        sql: `ALTER TABLE blueprint_comments ADD COLUMN project_id TEXT NOT NULL DEFAULT ''` },
+  { col: 'blueprint_comments.section_id',        sql: `ALTER TABLE blueprint_comments ADD COLUMN section_id TEXT NOT NULL DEFAULT ''` },
+  { col: 'blueprint_comments.user_id',           sql: `ALTER TABLE blueprint_comments ADD COLUMN user_id TEXT NOT NULL DEFAULT ''` },
+  { col: 'blueprint_comments.content',           sql: `ALTER TABLE blueprint_comments ADD COLUMN content TEXT NOT NULL DEFAULT ''` },
+  { col: 'blueprint_comments.parent_comment_id', sql: `ALTER TABLE blueprint_comments ADD COLUMN parent_comment_id TEXT` },
+  { col: 'blueprint_comments.created_at',        sql: `ALTER TABLE blueprint_comments ADD COLUMN created_at INTEGER` },
+  { col: 'blueprint_comments.updated_at',        sql: `ALTER TABLE blueprint_comments ADD COLUMN updated_at INTEGER` },
 
   // vendors
   { col: 'vendors.product_name',        sql: `ALTER TABLE vendors ADD COLUMN product_name TEXT NOT NULL DEFAULT ''` },

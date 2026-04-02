@@ -14,6 +14,7 @@ interface WorkspaceSidebarProps {
   companyName?: string
   techStackComplete?: boolean
   selfServiceEnabled?: boolean
+  projectStatus?: string
   logoUrl?: string
 }
 
@@ -25,6 +26,7 @@ export function WorkspaceSidebar({
   companyName,
   techStackComplete = false,
   selfServiceEnabled = false,
+  projectStatus,
   logoUrl,
 }: WorkspaceSidebarProps) {
   const pathname = usePathname()
@@ -68,7 +70,14 @@ export function WorkspaceSidebar({
     { label: 'Discovery',            href: '/workspace/intake/discovery',  icon: MessageCircle,   exact: false, disabled: !techStackComplete, gated: !techStackComplete },
     { label: 'Summary',              href: '/workspace/intake/summary',    icon: FileText,        exact: false, disabled: !techStackComplete, gated: !techStackComplete },
     ...(selfServiceEnabled ? [{ label: 'Blueprint Assistant', href: '/workspace/chat', icon: Bot, exact: false, disabled: false, gated: false }] : []),
-    { label: 'Blueprint',            href: null,                           icon: Map,             exact: false, disabled: true,              gated: false },
+    {
+      label: 'Blueprint',
+      href: ['client_review', 'approved'].includes(projectStatus ?? '') ? '/workspace/blueprint' : null,
+      icon: Map,
+      exact: false,
+      disabled: !['client_review', 'approved'].includes(projectStatus ?? ''),
+      gated: false,
+    },
     { label: 'Outputs',              href: null,                           icon: FileOutput,      exact: false, disabled: true,              gated: false },
   ]
 

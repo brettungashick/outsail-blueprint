@@ -458,6 +458,32 @@ export const chatContexts = sqliteTable('chat_contexts', {
 })
 
 // ============================================================
+// blueprint_comments (threaded comments on blueprint sections)
+// ============================================================
+export const blueprintComments = sqliteTable('blueprint_comments', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  project_id: text('project_id')
+    .notNull()
+    .references(() => projects.id),
+  section_id: text('section_id')
+    .notNull()
+    .references(() => blueprintSections.id),
+  user_id: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  content: text('content').notNull(),
+  parent_comment_id: text('parent_comment_id'), // nullable — for threaded replies
+  created_at: integer('created_at', { mode: 'timestamp' }).$defaultFn(
+    () => new Date()
+  ),
+  updated_at: integer('updated_at', { mode: 'timestamp' }).$defaultFn(
+    () => new Date()
+  ),
+})
+
+// ============================================================
 // generated_outputs
 // ============================================================
 export const generatedOutputs = sqliteTable('generated_outputs', {
@@ -574,3 +600,6 @@ export const appSettings = sqliteTable('app_settings', {
 })
 
 export type AppSetting = typeof appSettings.$inferSelect
+
+export type BlueprintComment = typeof blueprintComments.$inferSelect
+export type NewBlueprintComment = typeof blueprintComments.$inferInsert
