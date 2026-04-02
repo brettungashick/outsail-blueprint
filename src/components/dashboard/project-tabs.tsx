@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Clock, Users, Plus, Trash2, ArrowUp, ArrowDown, Save, ChevronDown, ChevronRight, Wand2, RefreshCw } from 'lucide-react'
+import { Clock, Users, Plus, Trash2, ArrowUp, ArrowDown, Save, ChevronDown, ChevronRight, Wand2, RefreshCw, ToggleLeft, ToggleRight, Mail, X, MessageSquare, Check } from 'lucide-react'
 import type { SectionKey, SectionDepth, SectionStatus, ProjectTier, ProjectStatus } from '@/types'
 import { TechStackViz } from '@/components/tech-stack/tech-stack-viz'
 import type { TechStackSystemRow, IntegrationRow } from '@/components/tech-stack/tech-stack-builder'
@@ -1379,6 +1379,446 @@ function QuestionGuideTab({ project }: { project: ProjectTabsProject }) {
 }
 
 // ----------------------------------------------------------------
+// PathwayTab
+// ----------------------------------------------------------------
+function PathwayTab({ project }: { project: ProjectTabsProject }) {
+  const [schedulingLink, setSchedulingLink] = useState(project.scheduling_link ?? '')
+  const [selfService, setSelfService] = useState(project.self_service_enabled)
+  const [savingLink, setSavingLink] = useState(false)
+  const [savedLink, setSavedLink] = useState(false)
+  const [savingToggle, setSavingToggle] = useState(false)
+  const [inviteName, setInviteName] = useState('')
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState('')
+  const [inviteFocusAreas, setInviteFocusAreas] = useState<string[]>([])
+  const [inviting, setInviting] = useState(false)
+  const [inviteSuccess, setInviteSuccess] = useState(false)
+  const [inviteError, setInviteError] = useState('')
+  const [stakeholderSessions, setStakeholderSessions] = useState<Array<{
+    id: string; session_type: string; participant_name: string | null; participant_role: string | null
+    participant_email: string | null; focus_areas: string | null; status: string | null; created_at: string | null
+  }>>([])
+
+  useEffect(() => {
+    fetch(`/api/projects/${project.id}/sessions`)
+      .then((r) => r.json())
+      .then((data: { sessions?: Array<{ id: string; session_type: string; participant_name: string | null; participant_role: string | null; participant_email: string | null; focus_areas: string | null; status: string | null; created_at: string | null }> }) => {
+        if (data.sessions) {
+          setStakeholderSessions(data.sessions.filter((s) => s.session_type === 'deep_discovery' && s.participant_email))
+        }
+      })
+      .catch(() => {/* silent */})
+  }, [project.id, inviteSuccess])
+
+  const sectionOptions: string[] = React.useMemo(() => {
+    if (!project.recommended_sections) return []
+    try {
+      const raw = JSON.parse(project.recommended_sections) as Array<{ key?: string; section_key?: string; name?: string; section_name?: string; title?: string }>
+      return raw.map((s) => s.name ?? s.section_name ?? s.title ?? s.key ?? s.section_key ?? '').filter(Boolean)
+    } catch { return [] }
+  }, [project.recommended_sections])
+
+  async function saveSchedulingLink() {
+    setSavingLink(true)
+    try {
+      await fetch(`/api/projects/${project.id}/settings`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ scheduling_link: schedulingLink }),
+      })
+      setSavedLink(true)
+      setTimeout(() => setSavedLink(false), 2500)
+    } finally {
+      setSavingLink(false)
+    }
+  }
+
+  async function toggleSelfService() {
+    const newVal = !selfService
+    setSelfService(newVal)
+    setSavingToggle(true)
+    try {
+      await fetch(`/api/projects/${project.id}/settings`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ self_service_enabled: newVal }),
+      })
+    } finally {
+      setSavingToggle(false)
+    }
+  }
+
+  async function sendInvite() {
+    if (!inviteName.trim() || !inviteEmail.trim()) return
+    setInviting(true)
+    setInviteError('')
+    try {
+      const res = await fetch(`/api/projects/${project.id}/invite-stakeholder`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: inviteName.trim(), email: inviteEmail.trim(), role: inviteRole.trim(), focus_areas: inviteFocusAreas }),
+      })
+      if (!res.ok) {
+        const d = await res.json() as { error?: string }
+        setInviteError(d.error ?? 'Failed to send invite')
+      } else {
+        setInviteSuccess(true)
+        setInviteName('')
+        setInviteEmail('')
+        setInviteRole('')
+        setInviteFocusAreas([])
+        setTimeout(() => setInviteSuccess(false), 3000)
+      }
+    } catch {
+      setInviteError('Network error')
+    } finally {
+      setInviting(false)
+    }
+  }
+
+  function toggleFocusArea(area: string) {
+    setInviteFocusAreas((prev) => prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area])
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Scheduling Link */}
+      <div className="outsail-card">
+        <h3 className="text-base font-semibold text-outsail-navy mb-2">Scheduling Link</h3>
+        <p className="text-sm text-outsail-gray-600 mb-4">Share this link with stakeholders so they can book a discovery call.</p>
+        <div className="flex gap-3 items-center">
+          <input
+            type="url"
+            value={schedulingLink}
+            onChange={(e) => setSchedulingLink(e.target.value)}
+            placeholder="https://calendly.com/..."
+            className="flex-1 px-3 py-2 text-sm border border-outsail-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-outsail-teal"
+          />
+          <button
+            onClick={saveSchedulingLink}
+            disabled={savingLink}
+            className="flex items-center gap-2 px-4 py-2 bg-outsail-teal text-white text-sm font-medium rounded-lg hover:bg-outsail-teal-dark disabled:opacity-50 transition-colors"
+          >
+            {savedLink ? <><Check className="w-4 h-4" /> Saved</> : <><Save className="w-4 h-4" /> Save</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Self-Service Toggle */}
+      <div className="outsail-card">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-outsail-navy">Self-Service Deep Discovery</h3>
+            <p className="text-sm text-outsail-gray-600 mt-1">Allow the client to chat with the AI consultant directly, without a call.</p>
+          </div>
+          <button
+            onClick={toggleSelfService}
+            disabled={savingToggle}
+            className="flex items-center gap-2 ml-4 disabled:opacity-50"
+            aria-label="Toggle self-service"
+          >
+            {selfService
+              ? <ToggleRight className="w-10 h-10 text-outsail-teal" />
+              : <ToggleLeft className="w-10 h-10 text-outsail-gray-600" />}
+          </button>
+        </div>
+        {selfService && (
+          <div className="mt-3 p-3 bg-outsail-teal-light rounded-lg">
+            <p className="text-sm text-outsail-teal font-medium">Self-service chat is active. The client can start deep discovery from their workspace.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Invite Stakeholder */}
+      <div className="outsail-card">
+        <h3 className="text-base font-semibold text-outsail-navy mb-1">Invite Stakeholder</h3>
+        <p className="text-sm text-outsail-gray-600 mb-5">Send a magic link to a stakeholder for their own scoped deep discovery session.</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-medium text-outsail-slate mb-1">Name *</label>
+            <input
+              type="text"
+              value={inviteName}
+              onChange={(e) => setInviteName(e.target.value)}
+              placeholder="Jane Smith"
+              className="w-full px-3 py-2 text-sm border border-outsail-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-outsail-teal"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-outsail-slate mb-1">Email *</label>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="jane@company.com"
+              className="w-full px-3 py-2 text-sm border border-outsail-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-outsail-teal"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-outsail-slate mb-1">Role / Title</label>
+            <input
+              type="text"
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value)}
+              placeholder="HR Director"
+              className="w-full px-3 py-2 text-sm border border-outsail-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-outsail-teal"
+            />
+          </div>
+          {sectionOptions.length > 0 && (
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-outsail-slate mb-2">Focus Areas</label>
+              <div className="flex flex-wrap gap-2">
+                {sectionOptions.map((area) => (
+                  <button
+                    key={area}
+                    onClick={() => toggleFocusArea(area)}
+                    className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                      inviteFocusAreas.includes(area)
+                        ? 'bg-outsail-teal text-white border-outsail-teal'
+                        : 'bg-white text-outsail-gray-600 border-outsail-gray-200 hover:border-outsail-teal hover:text-outsail-teal'
+                    }`}
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        {inviteError && <p className="mt-3 text-sm text-red-600">{inviteError}</p>}
+        <div className="mt-5">
+          <button
+            onClick={sendInvite}
+            disabled={inviting || !inviteName.trim() || !inviteEmail.trim()}
+            className="flex items-center gap-2 px-4 py-2 bg-outsail-teal text-white text-sm font-medium rounded-lg hover:bg-outsail-teal-dark disabled:opacity-50 transition-colors"
+          >
+            {inviting
+              ? <RefreshCw className="w-4 h-4 animate-spin" />
+              : inviteSuccess
+              ? <><Check className="w-4 h-4" /> Invite Sent!</>
+              : <><Mail className="w-4 h-4" /> Send Invite</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Invited Stakeholders */}
+      {stakeholderSessions.length > 0 && (
+        <div className="outsail-card">
+          <h3 className="text-base font-semibold text-outsail-navy mb-4">Invited Stakeholders</h3>
+          <div className="space-y-3">
+            {stakeholderSessions.map((s) => {
+              const focusAreas = s.focus_areas ? (() => { try { return JSON.parse(s.focus_areas) as string[] } catch { return [] } })() : []
+              return (
+                <div key={s.id} className="flex items-start justify-between gap-4 p-3 bg-outsail-gray-50 rounded-lg">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-outsail-navy">{s.participant_name ?? '—'}</p>
+                    <p className="text-xs text-outsail-gray-600">{s.participant_email}</p>
+                    {s.participant_role && <p className="text-xs text-outsail-gray-600">{s.participant_role}</p>}
+                    {focusAreas.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {focusAreas.map((a: string) => (
+                          <span key={a} className="px-2 py-0.5 text-xs bg-outsail-teal-light text-outsail-teal rounded-full">{a}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <span className={`shrink-0 px-2 py-0.5 text-xs rounded-full font-medium ${
+                    s.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {s.status === 'completed' ? 'Completed' : 'Active'}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ----------------------------------------------------------------
+// SessionsTab
+// ----------------------------------------------------------------
+interface SessionRow {
+  id: string
+  session_type: string
+  status: string | null
+  participant_name: string | null
+  participant_role: string | null
+  participant_email: string | null
+  focus_areas: string | null
+  processing_status: string | null
+  created_at: string | null
+  updated_at: string | null
+  extraction_count: number
+}
+
+function SessionsTab({ project }: { project: ProjectTabsProject }) {
+  const [sessions, setSessions] = useState<SessionRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/projects/${project.id}/sessions`)
+      .then((r) => r.json())
+      .then((data: { sessions?: SessionRow[] }) => { if (data.sessions) setSessions(data.sessions) })
+      .catch(() => {/* silent */})
+      .finally(() => setLoading(false))
+  }, [project.id])
+
+  function sessionTypeLabel(type: string) {
+    if (type === 'discovery') return 'Quick Discovery'
+    if (type === 'deep_discovery') return 'Deep Discovery'
+    if (type === 'transcript') return 'Transcript'
+    return type
+  }
+
+  function sessionTypeBadgeClass(type: string) {
+    if (type === 'discovery') return 'bg-blue-100 text-blue-700'
+    if (type === 'deep_discovery') return 'bg-purple-100 text-purple-700'
+    if (type === 'transcript') return 'bg-amber-100 text-amber-700'
+    return 'bg-outsail-gray-200 text-outsail-slate'
+  }
+
+  function formatDate(dateStr: string | null) {
+    if (!dateStr) return '—'
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold text-outsail-navy">Discovery Sessions</h3>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-outsail-teal text-white text-sm font-medium rounded-lg hover:bg-outsail-teal-dark transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Add Session
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-outsail-gray-600">Loading sessions…</p>
+      ) : sessions.length === 0 ? (
+        <div className="outsail-card py-12 text-center">
+          <MessageSquare className="w-8 h-8 text-outsail-gray-200 mx-auto mb-3" />
+          <p className="text-sm font-medium text-outsail-navy mb-1">No sessions yet</p>
+          <p className="text-sm text-outsail-gray-600">Discovery sessions will appear here once started.</p>
+        </div>
+      ) : (
+        <div className="outsail-card p-0 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-outsail-gray-200 bg-outsail-gray-50">
+                <th className="text-left px-4 py-3 text-xs font-medium text-outsail-gray-600 uppercase tracking-wide">Type</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-outsail-gray-600 uppercase tracking-wide">Participant</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-outsail-gray-600 uppercase tracking-wide hidden sm:table-cell">Date</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-outsail-gray-600 uppercase tracking-wide hidden sm:table-cell">Extractions</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-outsail-gray-600 uppercase tracking-wide">Status</th>
+                <th className="w-8" />
+              </tr>
+            </thead>
+            <tbody>
+              {sessions.map((s) => {
+                const isExpanded = expandedId === s.id
+                const focusAreas = s.focus_areas ? (() => { try { return JSON.parse(s.focus_areas) as string[] } catch { return [] } })() : []
+                return (
+                  <React.Fragment key={s.id}>
+                    <tr
+                      className={`border-b border-outsail-gray-200 cursor-pointer hover:bg-outsail-gray-50 transition-colors ${isExpanded ? 'bg-outsail-gray-50' : ''}`}
+                      onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                    >
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${sessionTypeBadgeClass(s.session_type)}`}>
+                          {sessionTypeLabel(s.session_type)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-outsail-slate">
+                        {s.participant_name ?? <span className="text-outsail-gray-600">—</span>}
+                        {s.participant_role && <span className="block text-xs text-outsail-gray-600">{s.participant_role}</span>}
+                      </td>
+                      <td className="px-4 py-3 text-outsail-gray-600 hidden sm:table-cell">{formatDate(s.created_at)}</td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <span className={`text-sm font-medium ${s.extraction_count > 0 ? 'text-outsail-teal' : 'text-outsail-gray-600'}`}>
+                          {s.extraction_count}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                          s.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {s.status === 'completed' ? 'Completed' : 'Active'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {isExpanded
+                          ? <ChevronDown className="w-4 h-4 text-outsail-gray-600" />
+                          : <ChevronRight className="w-4 h-4 text-outsail-gray-600" />}
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr className="border-b border-outsail-gray-200 bg-outsail-gray-50">
+                        <td colSpan={6} className="px-4 py-3">
+                          <div className="space-y-2 text-sm">
+                            {s.participant_email && (
+                              <p className="text-outsail-gray-600"><span className="font-medium text-outsail-slate">Email:</span> {s.participant_email}</p>
+                            )}
+                            {focusAreas.length > 0 && (
+                              <div className="flex flex-wrap items-center gap-1">
+                                <span className="font-medium text-outsail-slate">Focus Areas:</span>
+                                {focusAreas.map((a: string) => (
+                                  <span key={a} className="px-2 py-0.5 text-xs bg-outsail-teal-light text-outsail-teal rounded-full">{a}</span>
+                                ))}
+                              </div>
+                            )}
+                            {s.processing_status && s.session_type === 'transcript' && (
+                              <p className="text-outsail-gray-600"><span className="font-medium text-outsail-slate">Processing:</span> {s.processing_status}</p>
+                            )}
+                            <p className="text-outsail-gray-600"><span className="font-medium text-outsail-slate">Session ID:</span> <code className="text-xs">{s.id}</code></p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-outsail-navy">Add Session</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-outsail-gray-600 hover:text-outsail-navy">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="py-6 text-center">
+              <MessageSquare className="w-10 h-10 text-outsail-gray-200 mx-auto mb-3" />
+              <p className="text-sm font-medium text-outsail-navy mb-2">Transcript Upload Coming Soon</p>
+              <p className="text-sm text-outsail-gray-600">
+                You&apos;ll be able to upload call transcripts here for AI processing. For now, use the Pathway tab to invite stakeholders to self-service sessions.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="w-full px-4 py-2 bg-outsail-gray-200 text-outsail-slate text-sm font-medium rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ----------------------------------------------------------------
 // Coming Soon placeholder
 // ----------------------------------------------------------------
 function ComingSoon({ label, description }: { label: string; description?: string }) {
@@ -1435,12 +1875,8 @@ export function ProjectTabs({ project, blueprintSections }: ProjectTabsProps) {
       {activeTab === 'question-guide' && (
         <QuestionGuideTab project={project} />
       )}
-      {activeTab === 'pathway' && (
-        <ComingSoon label="Pathway" description="Manage scheduling, self-service chat, and stakeholder invitations here." />
-      )}
-      {activeTab === 'sessions' && (
-        <ComingSoon label="Sessions" description="All discovery sessions — chat, transcripts, and stakeholder calls — will appear here." />
-      )}
+      {activeTab === 'pathway' && <PathwayTab project={project} />}
+      {activeTab === 'sessions' && <SessionsTab project={project} />}
       {activeTab === 'blueprint' && (
         <ComingSoon label="Blueprint" description="Blueprint generation will be available once discovery is complete." />
       )}
