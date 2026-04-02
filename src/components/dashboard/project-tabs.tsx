@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Clock, Users } from 'lucide-react'
+import { Clock, Users, Plus, Trash2, ArrowUp, ArrowDown, Save, ChevronDown, ChevronRight } from 'lucide-react'
 import type { SectionKey, SectionDepth, SectionStatus, ProjectTier, ProjectStatus } from '@/types'
 import { TechStackViz } from '@/components/tech-stack/tech-stack-viz'
 import type { TechStackSystemRow, IntegrationRow } from '@/components/tech-stack/tech-stack-builder'
@@ -546,6 +546,451 @@ function TechStackTab({ projectId }: { projectId: string }) {
 }
 
 // ----------------------------------------------------------------
+// Discovery Tab
+// ----------------------------------------------------------------
+
+interface DiscoverySession {
+  id: string
+  session_type: 'discovery' | 'deep_discovery' | 'transcript'
+  status: 'active' | 'completed'
+  participant_name: string | null
+  participant_role: string | null
+  created_at: string | null
+}
+
+interface DiscoveryMessage {
+  id: string
+  session_id: string
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string | null
+}
+
+interface DiscoveryExtractions {
+  pain_points: Array<{ description: string; severity: string; related_system?: string }>
+  priorities: Array<{ priority: string; rank: number }>
+  vendors_staying: Array<{ name: string; reason?: string }>
+  vendors_replacing: Array<{ name: string; reason?: string }>
+  complexity_signals: Array<{ area: string; description: string; severity: string }>
+}
+
+interface RecommendedSection {
+  key: string
+  name: string
+  depth: 'light' | 'standard' | 'deep'
+  rationale?: string
+  notes?: string
+}
+
+const SESSION_TYPE_LABELS: Record<string, string> = {
+  discovery:      'Discovery Chat',
+  deep_discovery: 'Deep Discovery',
+  transcript:     'Transcript',
+}
+
+const SESSION_TYPE_COLORS: Record<string, string> = {
+  discovery:      'bg-outsail-teal-light text-outsail-teal-dark',
+  deep_discovery: 'bg-purple-100 text-purple-700',
+  transcript:     'bg-blue-100 text-outsail-blue',
+}
+
+function DiscoveryTab({ project }: { project: ProjectTabsProject }) {
+  const [sessions, setSessions]       = useState<DiscoverySession[]>([])
+  const [messages, setMessages]       = useState<DiscoveryMessage[]>([])
+  const [extractions, setExtractions] = useState<DiscoveryExtractions | null>(null)
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState<string | null>(null)
+
+  // Recommended sections — editable local copy
+  const [sections, setSections] = useState<RecommendedSection[]>(() => {
+    if (!project.recommended_sections) return []
+    try {
+      const raw = JSON.parse(project.recommended_sections) as Array<Record<string, string>>
+      return raw.map((s) => ({
+        key:      s.key ?? s.section_key ?? '',
+        name:     s.name ?? s.section_name ?? '',
+        depth:    (s.depth as RecommendedSection['depth']) ?? 'standard',
+        rationale:s.rationale,
+        notes:    s.notes,
+      }))
+    } catch { return [] }
+  })
+  const [sectionsDirty, setSectionsDirty] = useState(false)
+  const [sectionsSaving, setSectionsSaving] = useState(false)
+  const [sectionsSaved, setSectionsSaved]   = useState(false)
+
+  // Expanded session in transcript (default: first)
+  const [expandedSession, setExpandedSession] = useState<string | null>(null)
+
+  const transcriptBottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch(`/api/projects/${project.id}/discovery`)
+        if (!res.ok) throw new Error('Failed to load discovery data')
+        const data = await res.json() as {
+          sessions: DiscoverySession[]
+          messages: DiscoveryMessage[]
+          extractions: DiscoveryExtractions
+        }
+        if (cancelled) return
+        setSessions(data.sessions)
+        setMessages(data.messages)
+        setExtractions(data.extractions)
+        if (data.sessions.length > 0) setExpandedSession(data.sessions[0].id)
+      } catch {
+        if (!cancelled) setError('Could not load discovery data.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [project.id])
+
+  // Scroll transcript to bottom when messages load
+  useEffect(() => {
+    transcriptBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, expandedSession])
+
+  async function saveSections() {
+    setSectionsSaving(true)
+    try {
+      await fetch(`/api/projects/${project.id}/recommended-sections`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sections }),
+      })
+      setSectionsDirty(false)
+      setSectionsSaved(true)
+      setTimeout(() => setSectionsSaved(false), 2500)
+    } finally {
+      setSectionsSaving(false)
+    }
+  }
+
+  function updateSection(idx: number, patch: Partial<RecommendedSection>) {
+    setSections((prev) => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
+    setSectionsDirty(true)
+    setSectionsSaved(false)
+  }
+
+  function removeSection(idx: number) {
+    setSections((prev) => prev.filter((_, i) => i !== idx))
+    setSectionsDirty(true)
+    setSectionsSaved(false)
+  }
+
+  function moveSection(idx: number, dir: -1 | 1) {
+    const next = idx + dir
+    if (next < 0 || next >= sections.length) return
+    setSections((prev) => {
+      const arr = [...prev]
+      ;[arr[idx], arr[next]] = [arr[next], arr[idx]]
+      return arr
+    })
+    setSectionsDirty(true)
+    setSectionsSaved(false)
+  }
+
+  function addSection() {
+    setSections((prev) => [...prev, { key: `section_${Date.now()}`, name: '', depth: 'standard' }])
+    setSectionsDirty(true)
+    setSectionsSaved(false)
+  }
+
+  const hasExtractions = extractions && (
+    extractions.pain_points.length > 0 ||
+    extractions.priorities.length > 0 ||
+    extractions.vendors_staying.length > 0 ||
+    extractions.vendors_replacing.length > 0 ||
+    extractions.complexity_signals.length > 0
+  )
+
+  if (loading) {
+    return (
+      <div className="py-16 text-center text-outsail-gray-600">
+        <div className="inline-flex items-center gap-2">
+          <Spinner />
+          <span className="text-sm">Loading discovery data...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return <div className="py-16 text-center text-sm text-red-600">{error}</div>
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Top two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+        {/* LEFT — Transcript */}
+        <div className="lg:col-span-3 outsail-card flex flex-col min-h-0">
+          <h3 className="text-header-sm text-outsail-navy mb-4">Discovery Transcript</h3>
+
+          {sessions.length === 0 ? (
+            <p className="text-sm text-outsail-gray-600 italic py-8 text-center">
+              No sessions yet. The transcript will appear here after the client completes the discovery chat.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {sessions.map((sess) => {
+                const isOpen = expandedSession === sess.id
+                const sessMessages = messages.filter((m) => m.session_id === sess.id)
+                return (
+                  <div key={sess.id} className="border border-outsail-gray-200 rounded-card overflow-hidden">
+                    {/* Session header */}
+                    <button
+                      onClick={() => setExpandedSession(isOpen ? null : sess.id)}
+                      className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-outsail-gray-50 hover:bg-outsail-gray-200/40 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${SESSION_TYPE_COLORS[sess.session_type] ?? 'bg-outsail-gray-50 text-outsail-gray-600'}`}>
+                          {SESSION_TYPE_LABELS[sess.session_type] ?? sess.session_type}
+                        </span>
+                        {sess.participant_name && (
+                          <span className="text-sm text-outsail-slate truncate">
+                            {sess.participant_name}{sess.participant_role ? ` · ${sess.participant_role}` : ''}
+                          </span>
+                        )}
+                        <span className="text-xs text-outsail-gray-600 flex-shrink-0">
+                          {sess.created_at ? formatRelativeDate(new Date(sess.created_at)) : '—'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${sess.status === 'completed' ? 'bg-outsail-teal-light text-outsail-teal-dark' : 'bg-amber-100 text-amber-700'}`}>
+                          {sess.status}
+                        </span>
+                        {isOpen ? <ChevronDown className="w-4 h-4 text-outsail-gray-600" /> : <ChevronRight className="w-4 h-4 text-outsail-gray-600" />}
+                      </div>
+                    </button>
+
+                    {/* Messages */}
+                    {isOpen && (
+                      <div className="max-h-[480px] overflow-y-auto p-4 space-y-3 bg-white">
+                        {sessMessages.length === 0 ? (
+                          <p className="text-sm text-outsail-gray-600 italic text-center py-4">No messages in this session.</p>
+                        ) : (
+                          sessMessages.map((msg) => (
+                            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                                msg.role === 'user'
+                                  ? 'bg-outsail-teal text-white rounded-br-sm'
+                                  : 'bg-outsail-gray-50 text-outsail-slate border border-outsail-gray-200 rounded-bl-sm'
+                              }`}>
+                                {msg.content}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                        <div ref={transcriptBottomRef} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT — Extracted Insights */}
+        <div className="lg:col-span-2 outsail-card">
+          <h3 className="text-header-sm text-outsail-navy mb-4">Extracted Insights</h3>
+
+          {!hasExtractions ? (
+            <p className="text-sm text-outsail-gray-600 italic py-8 text-center">
+              No insights extracted yet. Complete the discovery chat to see data here.
+            </p>
+          ) : (
+            <div className="space-y-5">
+              {/* Pain Points */}
+              {extractions!.pain_points.length > 0 && (
+                <div>
+                  <p className="text-label text-outsail-gray-600 mb-2">Pain Points</p>
+                  <ul className="space-y-2">
+                    {extractions!.pain_points.map((p, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <span className={`mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold flex-shrink-0 ${
+                          p.severity === 'high'   ? 'bg-red-100 text-red-700'
+                          : p.severity === 'medium' ? 'bg-amber-100 text-amber-700'
+                                                    : 'bg-outsail-gray-50 text-outsail-gray-600'
+                        }`}>{p.severity}</span>
+                        <span className="text-outsail-slate">{p.description}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Priorities */}
+              {extractions!.priorities.length > 0 && (
+                <div>
+                  <p className="text-label text-outsail-gray-600 mb-2">Priorities</p>
+                  <ol className="space-y-1">
+                    {extractions!.priorities.map((p, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-outsail-slate">
+                        <span className="font-semibold text-outsail-teal flex-shrink-0">{i + 1}.</span>
+                        {p.priority}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* Vendors */}
+              {(extractions!.vendors_staying.length > 0 || extractions!.vendors_replacing.length > 0) && (
+                <div>
+                  <p className="text-label text-outsail-gray-600 mb-2">Vendors</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {extractions!.vendors_staying.map((v, i) => (
+                      <span key={`s${i}`} className="px-2 py-1 rounded-full text-xs font-medium bg-outsail-teal-light text-outsail-teal-dark border border-outsail-teal/20">
+                        Keeping: {v.name}
+                      </span>
+                    ))}
+                    {extractions!.vendors_replacing.map((v, i) => (
+                      <span key={`r${i}`} className="px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                        Replacing: {v.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Complexity */}
+              {extractions!.complexity_signals.length > 0 && (
+                <div>
+                  <p className="text-label text-outsail-gray-600 mb-2">Complexity Signals</p>
+                  <ul className="space-y-1.5">
+                    {extractions!.complexity_signals.map((c, i) => (
+                      <li key={i} className="text-sm text-outsail-slate">
+                        <span className="font-medium text-outsail-navy">{c.area}:</span>{' '}{c.description}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recommended Sections editor */}
+      <div className="outsail-card">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 className="text-header-sm text-outsail-navy">Recommended Blueprint Sections</h3>
+            <p className="text-xs text-outsail-gray-600 mt-0.5">
+              Advisor-editable. These drive the Question Guide and Blueprint structure.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {sectionsSaved && (
+              <span className="text-xs text-outsail-teal font-medium">Saved ✓</span>
+            )}
+            <button
+              onClick={saveSections}
+              disabled={!sectionsDirty || sectionsSaving}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-outsail-teal text-white hover:bg-outsail-teal-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {sectionsSaving ? <Spinner className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+              Save
+            </button>
+          </div>
+        </div>
+
+        {sections.length === 0 ? (
+          <p className="text-sm text-outsail-gray-600 italic py-4 text-center">
+            No sections defined yet. They&apos;ll be suggested after the discovery chat. You can also add them manually.
+          </p>
+        ) : (
+          <div className="space-y-2 mb-4">
+            {sections.map((sec, idx) => (
+              <div key={sec.key} className="flex items-center gap-2 p-3 rounded-lg border border-outsail-gray-200 bg-outsail-gray-50/50 group">
+                {/* Up/down */}
+                <div className="flex flex-col gap-0.5 flex-shrink-0">
+                  <button
+                    onClick={() => moveSection(idx, -1)}
+                    disabled={idx === 0}
+                    className="text-outsail-gray-600 hover:text-outsail-navy disabled:opacity-25 transition-colors"
+                    title="Move up"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => moveSection(idx, 1)}
+                    disabled={idx === sections.length - 1}
+                    className="text-outsail-gray-600 hover:text-outsail-navy disabled:opacity-25 transition-colors"
+                    title="Move down"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Section number */}
+                <span className="text-xs font-semibold text-outsail-gray-600 w-5 flex-shrink-0 text-center">
+                  {idx + 1}
+                </span>
+
+                {/* Name */}
+                <input
+                  type="text"
+                  value={sec.name}
+                  onChange={(e) => updateSection(idx, { name: e.target.value })}
+                  placeholder="Section name"
+                  className="flex-1 min-w-0 bg-white border border-outsail-gray-200 rounded-md px-2.5 py-1.5 text-sm text-outsail-slate focus:outline-none focus:border-outsail-teal focus:ring-1 focus:ring-outsail-teal/20"
+                />
+
+                {/* Depth */}
+                <select
+                  value={sec.depth}
+                  onChange={(e) => updateSection(idx, { depth: e.target.value as RecommendedSection['depth'] })}
+                  className="flex-shrink-0 bg-white border border-outsail-gray-200 rounded-md px-2 py-1.5 text-sm text-outsail-slate focus:outline-none focus:border-outsail-teal"
+                >
+                  <option value="light">Light</option>
+                  <option value="standard">Standard</option>
+                  <option value="deep">Deep</option>
+                </select>
+
+                {/* Notes */}
+                <input
+                  type="text"
+                  value={sec.notes ?? ''}
+                  onChange={(e) => updateSection(idx, { notes: e.target.value })}
+                  placeholder="Notes (optional)"
+                  className="w-40 bg-white border border-outsail-gray-200 rounded-md px-2.5 py-1.5 text-sm text-outsail-slate focus:outline-none focus:border-outsail-teal hidden lg:block"
+                />
+
+                {/* Delete */}
+                <button
+                  onClick={() => removeSection(idx)}
+                  className="flex-shrink-0 text-outsail-gray-600 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                  title="Remove section"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={addSection}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-outsail-gray-200 text-outsail-gray-600 hover:text-outsail-navy hover:border-outsail-teal/40 transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add Section
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ----------------------------------------------------------------
 // Coming Soon placeholder
 // ----------------------------------------------------------------
 function ComingSoon({ label, description }: { label: string; description?: string }) {
@@ -597,7 +1042,7 @@ export function ProjectTabs({ project, blueprintSections }: ProjectTabsProps) {
         <TechStackTab projectId={project.id} />
       )}
       {activeTab === 'discovery' && (
-        <ComingSoon label="Discovery" description="Chat transcript, extracted insights, and recommended sections will appear here." />
+        <DiscoveryTab project={project} />
       )}
       {activeTab === 'question-guide' && (
         <ComingSoon label="Question Guide" description="Generate and manage your discovery question guide here." />
