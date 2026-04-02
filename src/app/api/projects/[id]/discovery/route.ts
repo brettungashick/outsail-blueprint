@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { eq, asc, isNotNull } from 'drizzle-orm'
+import { eq, asc } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { projects, projectMembers, discoverySessions, chatMessages } from '@/lib/db/schema'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'

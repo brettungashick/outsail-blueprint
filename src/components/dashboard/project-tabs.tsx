@@ -188,16 +188,27 @@ function OverviewTab({ project, blueprintSections }: ProjectTabsProps) {
     try { discoverySummary = JSON.parse(project.discovery_summary) } catch { /* skip */ }
   }
 
-  // Parse client_edits JSON
+  // Parse client_edits JSON — structure saved by _summary-review-client.tsx
   let clientEdits: {
-    corrections?: string
-    anything_else?: string
-    section_flags?: Array<{ section: string; priority: string; comment?: string }>
+    pain_points?: Array<{ description: string; severity: string }>
+    priorities?: Array<{ priority: string; rank: number }>
+    vendors_staying?: Array<{ name: string }>
+    vendors_replacing?: Array<{ name: string }>
+    additional_context?: string
+    section_flags?: Record<string, string>   // section_key → advisor note
   } | null = null
 
   if (project.client_edits) {
     try { clientEdits = JSON.parse(project.client_edits) } catch { /* skip */ }
   }
+
+  const hasClientInput = clientEdits && (
+    clientEdits.additional_context ||
+    (clientEdits.section_flags && Object.keys(clientEdits.section_flags).length > 0) ||
+    (clientEdits.pain_points?.length ?? 0) > 0 ||
+    (clientEdits.vendors_staying?.length ?? 0) > 0 ||
+    (clientEdits.vendors_replacing?.length ?? 0) > 0
+  )
 
   const showDiscoveryData = POST_DISCOVERY.includes(project.status)
 
@@ -395,48 +406,62 @@ function OverviewTab({ project, blueprintSections }: ProjectTabsProps) {
         </div>
       )}
 
-      {/* Client Input — shown when client_edits present */}
-      {showDiscoveryData && clientEdits && (clientEdits.corrections || clientEdits.anything_else || (clientEdits.section_flags?.length ?? 0) > 0) && (
+      {/* Client Input — shown when client approved summary */}
+      {showDiscoveryData && hasClientInput && clientEdits && (
         <div className="outsail-card border-l-4 border-l-outsail-amber">
           <h3 className="text-header-sm text-outsail-navy mb-4">Client Input</h3>
           <div className="space-y-4">
-            {clientEdits.corrections && (
-              <div>
-                <p className="text-label text-outsail-gray-600 mb-1">Corrections</p>
-                <p className="text-sm text-outsail-slate bg-amber-50 rounded-lg p-3 border border-amber-100">
-                  {clientEdits.corrections}
-                </p>
-              </div>
-            )}
-            {clientEdits.anything_else && (
+            {/* Additional context / free text */}
+            {clientEdits.additional_context && (
               <div>
                 <p className="text-label text-outsail-gray-600 mb-1">Additional Context</p>
-                <p className="text-sm text-outsail-slate bg-outsail-gray-50 rounded-lg p-3 border border-outsail-gray-200">
-                  {clientEdits.anything_else}
+                <p className="text-sm text-outsail-slate bg-amber-50 rounded-lg p-3 border border-amber-100 whitespace-pre-wrap">
+                  {clientEdits.additional_context}
                 </p>
               </div>
             )}
-            {(clientEdits.section_flags?.length ?? 0) > 0 && (
+
+            {/* Vendor corrections */}
+            {((clientEdits.vendors_staying?.length ?? 0) + (clientEdits.vendors_replacing?.length ?? 0)) > 0 && (
               <div>
-                <p className="text-label text-outsail-gray-600 mb-2">Section Flags</p>
+                <p className="text-label text-outsail-gray-600 mb-2">Client Vendor Corrections</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {clientEdits.vendors_staying?.map((v, i) => (
+                    <span key={`s${i}`} className="px-2 py-1 rounded-full text-xs font-medium bg-outsail-teal-light text-outsail-teal-dark border border-outsail-teal/20">
+                      Keeping: {v.name}
+                    </span>
+                  ))}
+                  {clientEdits.vendors_replacing?.map((v, i) => (
+                    <span key={`r${i}`} className="px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                      Replacing: {v.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Section notes */}
+            {clientEdits.section_flags && Object.keys(clientEdits.section_flags).length > 0 && (
+              <div>
+                <p className="text-label text-outsail-gray-600 mb-2">Section Notes</p>
                 <div className="space-y-2">
-                  {clientEdits.section_flags!.map((flag, i) => (
-                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-outsail-gray-200 bg-outsail-gray-50">
-                      <span className={`mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold flex-shrink-0 ${
-                        flag.priority === 'high'   ? 'bg-red-100 text-red-700'
-                        : flag.priority === 'medium' ? 'bg-amber-100 text-amber-700'
-                                                      : 'bg-blue-50 text-outsail-blue'
-                      }`}>
-                        {flag.priority}
+                  {Object.entries(clientEdits.section_flags).map(([key, note]) => (
+                    <div key={key} className="flex items-start gap-3 p-3 rounded-lg border border-outsail-gray-200 bg-outsail-gray-50">
+                      <span className="text-xs font-semibold text-outsail-navy capitalize flex-shrink-0 mt-0.5">
+                        {key.replace(/_/g, ' ')}
                       </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-outsail-navy">{flag.section}</p>
-                        {flag.comment && <p className="text-sm text-outsail-gray-600 mt-0.5">{flag.comment}</p>}
-                      </div>
+                      <p className="text-sm text-outsail-gray-600">{note}</p>
                     </div>
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Pain point corrections count */}
+            {(clientEdits.pain_points?.length ?? 0) > 0 && (
+              <p className="text-xs text-outsail-gray-600 italic">
+                Client confirmed {clientEdits.pain_points!.length} pain point{clientEdits.pain_points!.length !== 1 ? 's' : ''} — see Discovery tab for full list.
+              </p>
             )}
           </div>
         </div>
@@ -602,15 +627,18 @@ function DiscoveryTab({ project }: { project: ProjectTabsProject }) {
   const [error, setError]             = useState<string | null>(null)
 
   // Recommended sections — editable local copy
+  // Handles both field conventions:
+  //   determine-blueprint-structure output: { key, title, recommended_depth, discovery_priority, notes }
+  //   previously-saved advisor edits:       { key, name, depth, rationale, notes }
   const [sections, setSections] = useState<RecommendedSection[]>(() => {
     if (!project.recommended_sections) return []
     try {
       const raw = JSON.parse(project.recommended_sections) as Array<Record<string, string>>
       return raw.map((s) => ({
         key:      s.key ?? s.section_key ?? '',
-        name:     s.name ?? s.section_name ?? '',
-        depth:    (s.depth as RecommendedSection['depth']) ?? 'standard',
-        rationale:s.rationale,
+        name:     s.name ?? s.section_name ?? s.title ?? '',
+        depth:    ((s.depth ?? s.recommended_depth ?? 'standard') as RecommendedSection['depth']),
+        rationale:s.rationale ?? s.notes,
         notes:    s.notes,
       }))
     } catch { return [] }
