@@ -145,10 +145,15 @@ export const discoverySessions = sqliteTable('sessions', {
   // Advisor-defined focus areas (JSON string[])
   focus_areas: text('focus_areas'),
   // Transcript-only fields
+  session_label: text('session_label'),     // "Requirements Call", "Town Hall", etc.
+  session_date: text('session_date'),        // ISO date string of the actual call
+  attendees: text('attendees'),              // JSON: Array<{name:string,role:string}>
   transcript_raw: text('transcript_raw'),
   processing_status: text('processing_status', {
-    enum: ['pending', 'processing', 'complete', 'failed'],
+    enum: ['pending', 'processing', 'review', 'complete', 'failed'],
   }),
+  session_summary: text('session_summary'),             // AI-generated summary
+  transcript_extractions: text('transcript_extractions'), // JSON: pending extractions for review
   created_by: text('created_by').references(() => users.id),
   // user_id: legacy column kept for DB compatibility with older table definitions
   user_id: text('user_id'),

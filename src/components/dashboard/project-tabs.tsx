@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Clock, Users, Plus, Trash2, ArrowUp, ArrowDown, Save, ChevronDown, ChevronRight, Wand2, RefreshCw, ToggleLeft, ToggleRight, Mail, X, MessageSquare, Check } from 'lucide-react'
+import { Clock, Users, Plus, Trash2, ArrowUp, ArrowDown, Save, ChevronDown, ChevronRight, Wand2, RefreshCw, ToggleLeft, ToggleRight, Mail, X, MessageSquare, Check, Pencil, AlertTriangle, FileText } from 'lucide-react'
 import type { SectionKey, SectionDepth, SectionStatus, ProjectTier, ProjectStatus } from '@/types'
 import { TechStackViz } from '@/components/tech-stack/tech-stack-viz'
 import type { TechStackSystemRow, IntegrationRow } from '@/components/tech-stack/tech-stack-builder'
@@ -1644,14 +1644,507 @@ interface SessionRow {
   id: string
   session_type: string
   status: string | null
+  session_label: string | null
+  session_date: string | null
+  attendees: string | null
   participant_name: string | null
   participant_role: string | null
   participant_email: string | null
   focus_areas: string | null
   processing_status: string | null
+  session_summary: string | null
+  transcript_extractions: string | null
   created_at: string | null
   updated_at: string | null
   extraction_count: number
+}
+
+interface Extraction {
+  id: string
+  type: 'requirement' | 'process' | 'decision' | 'question'
+  section: string
+  content: string
+  source_quote: string
+  confidence: 'high' | 'medium' | 'low'
+  criticality?: string
+  process_name?: string
+  steps?: string[]
+  made_by?: string
+  status: 'pending' | 'approved' | 'discarded'
+}
+
+interface TranscriptExtractionsData {
+  extractions: Extraction[]
+  conflicts: Array<{ section: string; existing: string; new_extraction: string; extraction_id: string }>
+  depth_suggestions: Array<{ section: string; current: string; suggested: string; reason: string }>
+  session_summary: string
+}
+
+function ExtractionCard({
+  extraction,
+  projectId,
+  sessionId,
+  onUpdate,
+}: {
+  extraction: Extraction
+  projectId: string
+  sessionId: string
+  onUpdate: (updated: TranscriptExtractionsData) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [editContent, setEditContent] = useState(extraction.content)
+  const [saving, setSaving] = useState(false)
+
+  async function handleAction(action: 'approve' | 'discard', editedContent?: string) {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/sessions/${sessionId}/extractions`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ extraction_id: extraction.id, action, edited_content: editedContent }),
+      })
+      if (res.ok) {
+        const d = await res.json() as { extractions: TranscriptExtractionsData }
+        onUpdate(d.extractions)
+        setEditing(false)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const typeBadge = {
+    requirement: 'bg-blue-100 text-blue-700',
+    process: 'bg-purple-100 text-purple-700',
+    decision: 'bg-green-100 text-green-700',
+    question: 'bg-amber-100 text-amber-700',
+  }[extraction.type] ?? 'bg-outsail-gray-200 text-outsail-slate'
+
+  const confidenceBadge = {
+    high: 'bg-green-100 text-green-700',
+    medium: 'bg-amber-100 text-amber-700',
+    low: 'bg-red-100 text-red-700',
+  }[extraction.confidence] ?? 'bg-outsail-gray-200 text-outsail-slate'
+
+  if (extraction.status === 'discarded') return null
+
+  return (
+    <div className={`rounded-lg border p-4 text-sm ${
+      extraction.status === 'approved'
+        ? 'border-green-200 bg-green-50 opacity-70'
+        : 'border-outsail-gray-200 bg-white'
+    }`}>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`px-2 py-0.5 text-xs font-medium rounded-full capitalize ${typeBadge}`}>
+            {extraction.type}
+          </span>
+          <span className="text-xs text-outsail-gray-600">{extraction.section}</span>
+          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${confidenceBadge}`}>
+            {extraction.confidence} confidence
+          </span>
+          {extraction.criticality && (
+            <span className="text-xs text-outsail-gray-600 italic">{extraction.criticality.replace(/_/g, ' ')}</span>
+          )}
+        </div>
+        {extraction.status === 'approved' && (
+          <span className="shrink-0 text-xs font-medium text-green-700">✓ Approved</span>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="space-y-2">
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            rows={3}
+            className="w-full px-3 py-2 text-sm border border-outsail-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-outsail-teal resize-none"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleAction('approve', editContent)}
+              disabled={saving}
+              className="flex items-center gap-1 px-3 py-1.5 bg-outsail-teal text-white text-xs font-medium rounded-lg hover:bg-outsail-teal-dark disabled:opacity-50"
+            >
+              <Check className="w-3 h-3" /> Save & Approve
+            </button>
+            <button onClick={() => { setEditing(false); setEditContent(extraction.content) }} className="px-3 py-1.5 text-xs text-outsail-gray-600 hover:text-outsail-navy">
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="text-outsail-slate mb-2">{extraction.content}</p>
+          {extraction.source_quote && (
+            <blockquote className="border-l-2 border-outsail-gray-200 pl-3 text-outsail-gray-600 italic text-xs mb-3">
+              &ldquo;{extraction.source_quote}&rdquo;
+            </blockquote>
+          )}
+          {extraction.status === 'pending' && (
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => handleAction('approve')}
+                disabled={saving}
+                className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                <Check className="w-3 h-3" /> Approve
+              </button>
+              <button
+                onClick={() => setEditing(true)}
+                className="flex items-center gap-1 px-3 py-1.5 border border-outsail-gray-200 text-outsail-slate text-xs font-medium rounded-lg hover:border-outsail-teal hover:text-outsail-teal"
+              >
+                <Pencil className="w-3 h-3" /> Edit
+              </button>
+              <button
+                onClick={() => handleAction('discard')}
+                disabled={saving}
+                className="flex items-center gap-1 px-3 py-1.5 border border-outsail-gray-200 text-outsail-gray-600 text-xs font-medium rounded-lg hover:border-red-300 hover:text-red-600 disabled:opacity-50"
+              >
+                <X className="w-3 h-3" /> Discard
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function ReviewPanel({
+  session,
+  projectId,
+  onSessionUpdate,
+}: {
+  session: SessionRow
+  projectId: string
+  onSessionUpdate: (updated: Partial<SessionRow>) => void
+}) {
+  const [data, setData] = useState<TranscriptExtractionsData | null>(null)
+  const [approvingAll, setApprovingAll] = useState(false)
+
+  useEffect(() => {
+    if (session.transcript_extractions) {
+      try {
+        setData(JSON.parse(session.transcript_extractions) as TranscriptExtractionsData)
+      } catch { /* skip */ }
+    }
+  }, [session.transcript_extractions])
+
+  function handleUpdate(updated: TranscriptExtractionsData) {
+    setData(updated)
+    onSessionUpdate({
+      transcript_extractions: JSON.stringify(updated),
+      processing_status: updated.extractions.every((e) => e.status !== 'pending') ? 'complete' : 'review',
+      status: updated.extractions.every((e) => e.status !== 'pending') ? 'completed' : 'active',
+    })
+  }
+
+  async function approveAllHigh() {
+    setApprovingAll(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/sessions/${session.id}/extractions`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'approve_all_high' }),
+      })
+      if (res.ok) {
+        const d = await res.json() as { extractions: TranscriptExtractionsData }
+        handleUpdate(d.extractions)
+      }
+    } finally {
+      setApprovingAll(false)
+    }
+  }
+
+  if (!data) return null
+
+  const pending = data.extractions.filter((e) => e.status === 'pending')
+  const highConfidencePending = pending.filter((e) => e.confidence === 'high')
+
+  return (
+    <div className="space-y-5 py-2">
+      {/* Summary */}
+      {(data.session_summary || session.session_summary) && (
+        <div className="p-3 bg-outsail-teal-light rounded-lg">
+          <p className="text-xs font-medium text-outsail-teal mb-1">Session Summary</p>
+          <p className="text-sm text-outsail-slate">{data.session_summary || session.session_summary}</p>
+        </div>
+      )}
+
+      {/* Depth suggestions */}
+      {data.depth_suggestions?.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-outsail-navy uppercase tracking-wide">Depth Suggestions</p>
+          {data.depth_suggestions.map((ds, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 border border-amber-200 bg-amber-50 rounded-lg">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-outsail-navy">
+                  {ds.section}: <span className="font-normal text-outsail-gray-600">{ds.current} → {ds.suggested}</span>
+                </p>
+                <p className="text-xs text-outsail-gray-600 mt-0.5">{ds.reason}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Conflicts */}
+      {data.conflicts?.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-outsail-navy uppercase tracking-wide">Conflicts with Prior Data</p>
+          {data.conflicts.map((c, i) => (
+            <div key={i} className="p-3 border border-amber-300 rounded-lg bg-white">
+              <p className="text-xs font-medium text-outsail-navy mb-2">{c.section}</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2 bg-outsail-gray-50 rounded">
+                  <p className="font-medium text-outsail-slate mb-1">Previously Captured</p>
+                  <p className="text-outsail-gray-600">{c.existing}</p>
+                </div>
+                <div className="p-2 bg-amber-50 rounded">
+                  <p className="font-medium text-outsail-slate mb-1">From This Transcript</p>
+                  <p className="text-outsail-gray-600">{c.new_extraction}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Extractions */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-outsail-navy uppercase tracking-wide">
+            Extractions ({pending.length} pending of {data.extractions.length})
+          </p>
+          {highConfidencePending.length > 0 && (
+            <button
+              onClick={approveAllHigh}
+              disabled={approvingAll}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              {approvingAll ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+              Approve All High Confidence ({highConfidencePending.length})
+            </button>
+          )}
+        </div>
+        {data.extractions.filter((e) => e.status !== 'discarded').map((ext) => (
+          <ExtractionCard
+            key={ext.id}
+            extraction={ext}
+            projectId={projectId}
+            sessionId={session.id}
+            onUpdate={handleUpdate}
+          />
+        ))}
+        {data.extractions.every((e) => e.status !== 'pending') && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+            <p className="text-sm font-medium text-green-700">All extractions reviewed. Session marked complete.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function UploadModal({
+  projectId,
+  onClose,
+  onCreated,
+}: {
+  projectId: string
+  onClose: () => void
+  onCreated: (s: SessionRow) => void
+}) {
+  const [sessionLabel, setSessionLabel] = useState('Requirements Call')
+  const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0])
+  const [attendees, setAttendees] = useState<Array<{ name: string; role: string }>>([{ name: '', role: '' }])
+  const [transcript, setTranscript] = useState('')
+  const [step, setStep] = useState<'form' | 'processing' | 'done'>('form')
+  const [error, setError] = useState('')
+
+  function addAttendee() { setAttendees((a) => [...a, { name: '', role: '' }]) }
+  function removeAttendee(i: number) { setAttendees((a) => a.filter((_, idx) => idx !== i)) }
+  function updateAttendee(i: number, field: 'name' | 'role', val: string) {
+    setAttendees((a) => a.map((att, idx) => idx === i ? { ...att, [field]: val } : att))
+  }
+
+  async function handleSubmit() {
+    if (!transcript.trim()) { setError('Transcript is required'); return }
+    setError('')
+    setStep('processing')
+
+    try {
+      // 1. Create the session
+      const createRes = await fetch(`/api/projects/${projectId}/sessions`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          session_label: sessionLabel,
+          session_date: sessionDate,
+          attendees: attendees.filter((a) => a.name.trim()),
+          transcript_raw: transcript,
+        }),
+      })
+
+      if (!createRes.ok) {
+        setError('Failed to save session')
+        setStep('form')
+        return
+      }
+
+      const { session } = await createRes.json() as { session: SessionRow }
+
+      // 2. Kick off AI processing
+      const processRes = await fetch('/api/ai/process-transcript', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ session_id: session.id, project_id: projectId }),
+      })
+
+      if (!processRes.ok) {
+        // Session was created but processing failed — still surface it
+        onCreated({ ...session, processing_status: 'failed' })
+        onClose()
+        return
+      }
+
+      const { result } = await processRes.json() as { result: TranscriptExtractionsData }
+      onCreated({
+        ...session,
+        processing_status: 'review',
+        session_summary: result.session_summary,
+        transcript_extractions: JSON.stringify(result),
+        extraction_count: result.extractions.length,
+      })
+      setStep('done')
+      setTimeout(onClose, 800)
+    } catch {
+      setError('Network error — please try again')
+      setStep('form')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto py-8 px-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outsail-gray-200">
+          <div className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-outsail-teal" />
+            <h3 className="text-base font-semibold text-outsail-navy">Upload Transcript</h3>
+          </div>
+          <button onClick={onClose} className="text-outsail-gray-600 hover:text-outsail-navy">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {step === 'processing' ? (
+          <div className="p-12 text-center">
+            <RefreshCw className="w-10 h-10 text-outsail-teal animate-spin mx-auto mb-4" />
+            <p className="text-base font-medium text-outsail-navy mb-1">Processing Transcript</p>
+            <p className="text-sm text-outsail-gray-600">Claude is extracting requirements, processes, decisions, and open questions. This may take up to a minute.</p>
+          </div>
+        ) : step === 'done' ? (
+          <div className="p-12 text-center">
+            <Check className="w-10 h-10 text-green-600 mx-auto mb-4" />
+            <p className="text-base font-medium text-outsail-navy">Processing Complete</p>
+          </div>
+        ) : (
+          <div className="p-6 space-y-5">
+            {/* Session type + date */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-outsail-slate mb-1">Session Type</label>
+                <select
+                  value={sessionLabel}
+                  onChange={(e) => setSessionLabel(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-outsail-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-outsail-teal bg-white"
+                >
+                  <option>Requirements Call</option>
+                  <option>Town Hall</option>
+                  <option>SME Deep-Dive</option>
+                  <option>Follow-Up</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-outsail-slate mb-1">Session Date</label>
+                <input
+                  type="date"
+                  value={sessionDate}
+                  onChange={(e) => setSessionDate(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-outsail-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-outsail-teal"
+                />
+              </div>
+            </div>
+
+            {/* Attendees */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-outsail-slate">Attendees</label>
+                <button onClick={addAttendee} className="flex items-center gap-1 text-xs text-outsail-teal hover:text-outsail-teal-dark">
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              </div>
+              <div className="space-y-2">
+                {attendees.map((att, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={att.name}
+                      onChange={(e) => updateAttendee(i, 'name', e.target.value)}
+                      placeholder="Name"
+                      className="flex-1 px-3 py-2 text-sm border border-outsail-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-outsail-teal"
+                    />
+                    <input
+                      type="text"
+                      value={att.role}
+                      onChange={(e) => updateAttendee(i, 'role', e.target.value)}
+                      placeholder="Role / Title"
+                      className="flex-1 px-3 py-2 text-sm border border-outsail-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-outsail-teal"
+                    />
+                    {attendees.length > 1 && (
+                      <button onClick={() => removeAttendee(i)} className="text-outsail-gray-600 hover:text-red-600">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Transcript */}
+            <div>
+              <label className="block text-xs font-medium text-outsail-slate mb-1">Transcript *</label>
+              <textarea
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+                placeholder="Paste the meeting transcript here..."
+                rows={16}
+                className="w-full px-3 py-2 text-sm border border-outsail-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-outsail-teal resize-y"
+                style={{ minHeight: '400px' }}
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button onClick={onClose} className="px-4 py-2 text-sm text-outsail-gray-600 hover:text-outsail-navy">
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={!transcript.trim()}
+                className="flex items-center gap-2 px-5 py-2 bg-outsail-teal text-white text-sm font-medium rounded-lg hover:bg-outsail-teal-dark disabled:opacity-50 transition-colors"
+              >
+                <Wand2 className="w-4 h-4" /> Save &amp; Process
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function SessionsTab({ project }: { project: ProjectTabsProject }) {
@@ -1660,15 +2153,27 @@ function SessionsTab({ project }: { project: ProjectTabsProject }) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
 
-  useEffect(() => {
+  function loadSessions() {
     fetch(`/api/projects/${project.id}/sessions`)
       .then((r) => r.json())
       .then((data: { sessions?: SessionRow[] }) => { if (data.sessions) setSessions(data.sessions) })
       .catch(() => {/* silent */})
       .finally(() => setLoading(false))
-  }, [project.id])
+  }
 
-  function sessionTypeLabel(type: string) {
+  useEffect(() => { loadSessions() }, [project.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleSessionCreated(s: SessionRow) {
+    setSessions((prev) => [s, ...prev])
+    setExpandedId(s.id)
+  }
+
+  function handleSessionUpdate(sessionId: string, updates: Partial<SessionRow>) {
+    setSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, ...updates } : s))
+  }
+
+  function sessionTypeLabel(type: string, label?: string | null) {
+    if (label) return label
     if (type === 'discovery') return 'Quick Discovery'
     if (type === 'deep_discovery') return 'Deep Discovery'
     if (type === 'transcript') return 'Transcript'
@@ -1682,9 +2187,44 @@ function SessionsTab({ project }: { project: ProjectTabsProject }) {
     return 'bg-outsail-gray-200 text-outsail-slate'
   }
 
+  function statusBadge(s: SessionRow): { label: string; cls: string } {
+    if (s.session_type === 'transcript') {
+      if (s.processing_status === 'pending') return { label: 'Pending', cls: 'bg-outsail-gray-200 text-outsail-slate' }
+      if (s.processing_status === 'processing') return { label: 'Processing…', cls: 'bg-blue-100 text-blue-700' }
+      if (s.processing_status === 'review') return { label: 'Ready for Review', cls: 'bg-amber-100 text-amber-700' }
+      if (s.processing_status === 'complete') return { label: 'Complete', cls: 'bg-green-100 text-green-700' }
+      if (s.processing_status === 'failed') return { label: 'Failed', cls: 'bg-red-100 text-red-700' }
+    }
+    return s.status === 'completed'
+      ? { label: 'Completed', cls: 'bg-green-100 text-green-700' }
+      : { label: 'Active', cls: 'bg-amber-100 text-amber-700' }
+  }
+
   function formatDate(dateStr: string | null) {
     if (!dateStr) return '—'
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  function participantDisplay(s: SessionRow) {
+    if (s.session_type === 'transcript') {
+      if (!s.attendees) return <span className="text-outsail-gray-600">—</span>
+      try {
+        const att = JSON.parse(s.attendees) as Array<{ name: string; role: string }>
+        if (!att.length) return <span className="text-outsail-gray-600">—</span>
+        return (
+          <>
+            <span>{att[0].name}</span>
+            {att.length > 1 && <span className="block text-xs text-outsail-gray-600">+{att.length - 1} more</span>}
+          </>
+        )
+      } catch { return <span className="text-outsail-gray-600">—</span> }
+    }
+    return (
+      <>
+        {s.participant_name ?? <span className="text-outsail-gray-600">—</span>}
+        {s.participant_role && <span className="block text-xs text-outsail-gray-600">{s.participant_role}</span>}
+      </>
+    )
   }
 
   return (
@@ -1723,6 +2263,7 @@ function SessionsTab({ project }: { project: ProjectTabsProject }) {
             <tbody>
               {sessions.map((s) => {
                 const isExpanded = expandedId === s.id
+                const badge = statusBadge(s)
                 const focusAreas = s.focus_areas ? (() => { try { return JSON.parse(s.focus_areas) as string[] } catch { return [] } })() : []
                 return (
                   <React.Fragment key={s.id}>
@@ -1732,25 +2273,20 @@ function SessionsTab({ project }: { project: ProjectTabsProject }) {
                     >
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${sessionTypeBadgeClass(s.session_type)}`}>
-                          {sessionTypeLabel(s.session_type)}
+                          {sessionTypeLabel(s.session_type, s.session_label)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-outsail-slate">
-                        {s.participant_name ?? <span className="text-outsail-gray-600">—</span>}
-                        {s.participant_role && <span className="block text-xs text-outsail-gray-600">{s.participant_role}</span>}
+                      <td className="px-4 py-3 text-outsail-slate">{participantDisplay(s)}</td>
+                      <td className="px-4 py-3 text-outsail-gray-600 hidden sm:table-cell">
+                        {s.session_date ? formatDate(s.session_date) : formatDate(s.created_at)}
                       </td>
-                      <td className="px-4 py-3 text-outsail-gray-600 hidden sm:table-cell">{formatDate(s.created_at)}</td>
                       <td className="px-4 py-3 hidden sm:table-cell">
                         <span className={`text-sm font-medium ${s.extraction_count > 0 ? 'text-outsail-teal' : 'text-outsail-gray-600'}`}>
                           {s.extraction_count}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                          s.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {s.status === 'completed' ? 'Completed' : 'Active'}
-                        </span>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${badge.cls}`}>{badge.label}</span>
                       </td>
                       <td className="px-4 py-3">
                         {isExpanded
@@ -1760,24 +2296,38 @@ function SessionsTab({ project }: { project: ProjectTabsProject }) {
                     </tr>
                     {isExpanded && (
                       <tr className="border-b border-outsail-gray-200 bg-outsail-gray-50">
-                        <td colSpan={6} className="px-4 py-3">
-                          <div className="space-y-2 text-sm">
-                            {s.participant_email && (
-                              <p className="text-outsail-gray-600"><span className="font-medium text-outsail-slate">Email:</span> {s.participant_email}</p>
-                            )}
-                            {focusAreas.length > 0 && (
-                              <div className="flex flex-wrap items-center gap-1">
-                                <span className="font-medium text-outsail-slate">Focus Areas:</span>
-                                {focusAreas.map((a: string) => (
-                                  <span key={a} className="px-2 py-0.5 text-xs bg-outsail-teal-light text-outsail-teal rounded-full">{a}</span>
-                                ))}
-                              </div>
-                            )}
-                            {s.processing_status && s.session_type === 'transcript' && (
-                              <p className="text-outsail-gray-600"><span className="font-medium text-outsail-slate">Processing:</span> {s.processing_status}</p>
-                            )}
-                            <p className="text-outsail-gray-600"><span className="font-medium text-outsail-slate">Session ID:</span> <code className="text-xs">{s.id}</code></p>
-                          </div>
+                        <td colSpan={6} className="px-4 py-4">
+                          {s.session_type === 'transcript' && s.processing_status === 'processing' && (
+                            <div className="flex items-center gap-3 text-sm text-outsail-gray-600">
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              Processing transcript with AI…
+                            </div>
+                          )}
+                          {s.session_type === 'transcript' && (s.processing_status === 'review' || s.processing_status === 'complete') && (
+                            <ReviewPanel
+                              session={s}
+                              projectId={project.id}
+                              onSessionUpdate={(updates) => handleSessionUpdate(s.id, updates)}
+                            />
+                          )}
+                          {s.session_type === 'transcript' && s.processing_status === 'failed' && (
+                            <p className="text-sm text-red-600">Processing failed. Please try re-uploading the transcript.</p>
+                          )}
+                          {s.session_type !== 'transcript' && (
+                            <div className="space-y-2 text-sm">
+                              {s.participant_email && (
+                                <p className="text-outsail-gray-600"><span className="font-medium text-outsail-slate">Email:</span> {s.participant_email}</p>
+                              )}
+                              {focusAreas.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-1">
+                                  <span className="font-medium text-outsail-slate">Focus Areas:</span>
+                                  {focusAreas.map((a: string) => (
+                                    <span key={a} className="px-2 py-0.5 text-xs bg-outsail-teal-light text-outsail-teal rounded-full">{a}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )}
@@ -1790,29 +2340,11 @@ function SessionsTab({ project }: { project: ProjectTabsProject }) {
       )}
 
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-outsail-navy">Add Session</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-outsail-gray-600 hover:text-outsail-navy">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="py-6 text-center">
-              <MessageSquare className="w-10 h-10 text-outsail-gray-200 mx-auto mb-3" />
-              <p className="text-sm font-medium text-outsail-navy mb-2">Transcript Upload Coming Soon</p>
-              <p className="text-sm text-outsail-gray-600">
-                You&apos;ll be able to upload call transcripts here for AI processing. For now, use the Pathway tab to invite stakeholders to self-service sessions.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="w-full px-4 py-2 bg-outsail-gray-200 text-outsail-slate text-sm font-medium rounded-lg transition-colors"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <UploadModal
+          projectId={project.id}
+          onClose={() => setShowAddModal(false)}
+          onCreated={handleSessionCreated}
+        />
       )}
     </div>
   )
