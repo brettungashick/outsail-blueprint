@@ -31,6 +31,8 @@ export const users = sqliteTable('users', {
     .notNull()
     .default('advisor'),
   organization_id: text('organization_id').references(() => organizations.id),
+  password_hash: text('password_hash'),
+  must_change_password: integer('must_change_password', { mode: 'boolean' }).default(false),
   created_at: integer('created_at', { mode: 'timestamp' }).$defaultFn(
     () => new Date()
   ),
