@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Clock, Users, Plus, Trash2, ArrowUp, ArrowDown, Save, ChevronDown, ChevronRight } from 'lucide-react'
+import { Clock, Users, Plus, Trash2, ArrowUp, ArrowDown, Save, ChevronDown, ChevronRight, Wand2, RefreshCw } from 'lucide-react'
 import type { SectionKey, SectionDepth, SectionStatus, ProjectTier, ProjectStatus } from '@/types'
 import { TechStackViz } from '@/components/tech-stack/tech-stack-viz'
 import type { TechStackSystemRow, IntegrationRow } from '@/components/tech-stack/tech-stack-builder'
@@ -991,6 +991,366 @@ function DiscoveryTab({ project }: { project: ProjectTabsProject }) {
 }
 
 // ----------------------------------------------------------------
+// Question Guide Tab
+// ----------------------------------------------------------------
+
+interface GuideSection {
+  section_key: string
+  section_name: string
+  context: string
+  already_captured: string
+  areas_to_probe: string[]
+  questions: string[]
+  time_allocation: string
+  advisor_notes: string
+}
+
+interface QuestionGuide {
+  sections: GuideSection[]
+  generated_at: string
+}
+
+function QuestionGuideTab({ project }: { project: ProjectTabsProject }) {
+  const [guide, setGuide]         = useState<QuestionGuide | null>(null)
+  const [loading, setLoading]     = useState(true)
+  const [generating, setGenerating] = useState(false)
+  const [saving, setSaving]       = useState(false)
+  const [dirty, setDirty]         = useState(false)
+  const [saved, setSaved]         = useState(false)
+  const [genError, setGenError]   = useState<string | null>(null)
+  const [expanded, setExpanded]   = useState<Set<number>>(new Set([0]))
+
+  // Fetch guide on mount
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const res = await fetch(`/api/projects/${project.id}/question-guide`)
+        if (!res.ok) throw new Error()
+        const data = await res.json() as { guide: QuestionGuide | null }
+        if (!cancelled) {
+          setGuide(data.guide)
+          if (data.guide) setExpanded(new Set([0]))
+        }
+      } catch { /* non-fatal — guide stays null */ }
+      finally { if (!cancelled) setLoading(false) }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [project.id])
+
+  async function generate(confirmRegenerate = false) {
+    if (guide && !confirmRegenerate) return  // caller should confirm first
+    setGenerating(true)
+    setGenError(null)
+    try {
+      const res = await fetch('/api/ai/generate-question-guide', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id }),
+      })
+      const data = await res.json() as { guide?: QuestionGuide; error?: string }
+      if (!res.ok || data.error) {
+        setGenError(data.error ?? 'Generation failed. Please try again.')
+      } else {
+        setGuide(data.guide!)
+        setDirty(false)
+        setSaved(false)
+        setExpanded(new Set([0]))
+      }
+    } catch {
+      setGenError('Network error. Please try again.')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function saveGuide() {
+    if (!guide) return
+    setSaving(true)
+    try {
+      await fetch(`/api/projects/${project.id}/question-guide`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ guide }),
+      })
+      setDirty(false)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function updateSection(idx: number, patch: Partial<GuideSection>) {
+    setGuide((prev) => {
+      if (!prev) return prev
+      const sections = [...prev.sections]
+      sections[idx] = { ...sections[idx], ...patch }
+      return { ...prev, sections }
+    })
+    setDirty(true)
+    setSaved(false)
+  }
+
+  function updateQuestion(sIdx: number, qIdx: number, value: string) {
+    setGuide((prev) => {
+      if (!prev) return prev
+      const sections = [...prev.sections]
+      const questions = [...sections[sIdx].questions]
+      questions[qIdx] = value
+      sections[sIdx] = { ...sections[sIdx], questions }
+      return { ...prev, sections }
+    })
+    setDirty(true)
+    setSaved(false)
+  }
+
+  function removeQuestion(sIdx: number, qIdx: number) {
+    setGuide((prev) => {
+      if (!prev) return prev
+      const sections = [...prev.sections]
+      const questions = sections[sIdx].questions.filter((_, i) => i !== qIdx)
+      sections[sIdx] = { ...sections[sIdx], questions }
+      return { ...prev, sections }
+    })
+    setDirty(true)
+    setSaved(false)
+  }
+
+  function addQuestion(sIdx: number) {
+    setGuide((prev) => {
+      if (!prev) return prev
+      const sections = [...prev.sections]
+      const questions = [...sections[sIdx].questions, '']
+      sections[sIdx] = { ...sections[sIdx], questions }
+      return { ...prev, sections }
+    })
+    setDirty(true)
+    setSaved(false)
+  }
+
+  function toggleExpanded(idx: number) {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      next.has(idx) ? next.delete(idx) : next.add(idx)
+      return next
+    })
+  }
+
+  const depthColor: Record<string, string> = {
+    light:    'bg-outsail-gray-50 text-outsail-gray-600 border-outsail-gray-200',
+    standard: 'bg-blue-50 text-outsail-blue border-blue-200',
+    deep:     'bg-outsail-navy/5 text-outsail-navy border-outsail-navy/20',
+  }
+
+  if (loading) {
+    return (
+      <div className="py-16 text-center text-outsail-gray-600">
+        <div className="inline-flex items-center gap-2"><Spinner /><span className="text-sm">Loading question guide...</span></div>
+      </div>
+    )
+  }
+
+  // ── Empty state ──────────────────────────────────────────────────────────────
+  if (!guide && !generating) {
+    return (
+      <div className="py-16 text-center">
+        <div className="inline-flex flex-col items-center gap-4 max-w-sm mx-auto">
+          <div className="w-12 h-12 rounded-full bg-outsail-teal-light flex items-center justify-center">
+            <Wand2 className="w-6 h-6 text-outsail-teal" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-outsail-navy mb-1">No Question Guide Yet</p>
+            <p className="text-sm text-outsail-gray-600">
+              Generate a structured question guide organized by Blueprint section, based on the discovery data captured so far.
+            </p>
+          </div>
+          {genError && <p className="text-sm text-red-600">{genError}</p>}
+          <button
+            onClick={() => void generate(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-outsail-teal text-white text-sm font-medium hover:bg-outsail-teal-dark transition-colors"
+          >
+            <Wand2 className="w-4 h-4" />
+            Generate Question Guide
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Generating state ─────────────────────────────────────────────────────────
+  if (generating) {
+    return (
+      <div className="py-16 text-center">
+        <div className="inline-flex flex-col items-center gap-3">
+          <Spinner className="w-6 h-6 text-outsail-teal" />
+          <p className="text-sm font-medium text-outsail-navy">Generating your question guide…</p>
+          <p className="text-xs text-outsail-gray-600">This usually takes 15–30 seconds.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Guide exists ─────────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h3 className="text-header-sm text-outsail-navy">Question Guide</h3>
+          {guide!.generated_at && (
+            <p className="text-xs text-outsail-gray-600 mt-0.5">
+              Generated {formatRelativeDate(new Date(guide!.generated_at))}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {genError && <p className="text-xs text-red-600">{genError}</p>}
+          {saved && <span className="text-xs text-outsail-teal font-medium">Saved ✓</span>}
+          <button
+            onClick={() => {
+              if (dirty) {
+                if (!window.confirm('Regenerating will overwrite your manual edits. Continue?')) return
+              }
+              void generate(true)
+            }}
+            disabled={generating}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-outsail-gray-200 text-outsail-gray-600 hover:text-outsail-navy hover:border-outsail-teal/40 transition-colors disabled:opacity-40"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Regenerate
+          </button>
+          <button
+            onClick={() => void saveGuide()}
+            disabled={!dirty || saving}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-outsail-teal text-white hover:bg-outsail-teal-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {saving ? <Spinner className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+            Save Changes
+          </button>
+        </div>
+      </div>
+
+      {/* Sections */}
+      {guide!.sections.map((sec, sIdx) => {
+        const isOpen = expanded.has(sIdx)
+        return (
+          <div key={sec.section_key} className="outsail-card overflow-hidden p-0">
+            {/* Section header */}
+            <button
+              onClick={() => toggleExpanded(sIdx)}
+              className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-outsail-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {isOpen
+                  ? <ChevronDown className="w-4 h-4 text-outsail-gray-600 flex-shrink-0" />
+                  : <ChevronRight className="w-4 h-4 text-outsail-gray-600 flex-shrink-0" />
+                }
+                <span className="font-semibold text-outsail-navy truncate">{sec.section_name || '(unnamed)'}</span>
+                <span className="text-xs text-outsail-gray-600 flex-shrink-0">
+                  {sec.questions.length} question{sec.questions.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              {sec.time_allocation && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full border bg-outsail-gray-50 text-outsail-gray-600 border-outsail-gray-200 flex-shrink-0">
+                  {sec.time_allocation}
+                </span>
+              )}
+            </button>
+
+            {/* Section body */}
+            {isOpen && (
+              <div className="border-t border-outsail-gray-200 px-5 py-5 space-y-5">
+                {/* Context */}
+                {sec.context && (
+                  <div>
+                    <p className="text-label text-outsail-gray-600 mb-1">Context</p>
+                    <p className="text-sm text-outsail-slate">{sec.context}</p>
+                  </div>
+                )}
+
+                {/* Already captured */}
+                {sec.already_captured && (
+                  <div>
+                    <p className="text-label text-outsail-gray-600 mb-1">Already Captured</p>
+                    <p className="text-sm text-outsail-slate italic bg-outsail-gray-50 rounded-lg px-3 py-2 border border-outsail-gray-200">
+                      {sec.already_captured}
+                    </p>
+                  </div>
+                )}
+
+                {/* Areas to probe */}
+                {sec.areas_to_probe.length > 0 && (
+                  <div>
+                    <p className="text-label text-outsail-gray-600 mb-2">Key Areas to Probe</p>
+                    <ul className="space-y-1">
+                      {sec.areas_to_probe.map((area, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-outsail-slate">
+                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-outsail-teal flex-shrink-0" />
+                          {area}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Questions */}
+                <div>
+                  <p className="text-label text-outsail-gray-600 mb-2">Questions</p>
+                  <div className="space-y-2">
+                    {sec.questions.map((q, qIdx) => (
+                      <div key={qIdx} className="flex items-start gap-2 group">
+                        <span className="mt-2.5 text-xs font-semibold text-outsail-teal w-5 flex-shrink-0 text-right">
+                          {qIdx + 1}.
+                        </span>
+                        <textarea
+                          value={q}
+                          onChange={(e) => updateQuestion(sIdx, qIdx, e.target.value)}
+                          rows={2}
+                          className="flex-1 min-w-0 bg-white border border-outsail-gray-200 rounded-lg px-3 py-2 text-sm text-outsail-slate resize-none focus:outline-none focus:border-outsail-teal focus:ring-1 focus:ring-outsail-teal/20"
+                          placeholder="Enter question..."
+                        />
+                        <button
+                          onClick={() => removeQuestion(sIdx, qIdx)}
+                          className="mt-2.5 flex-shrink-0 text-outsail-gray-600 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Remove question"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => addQuestion(sIdx)}
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-outsail-gray-600 hover:text-outsail-teal transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add question
+                  </button>
+                </div>
+
+                {/* Advisor notes */}
+                <div>
+                  <p className="text-label text-outsail-gray-600 mb-1">Advisor Notes</p>
+                  <textarea
+                    value={sec.advisor_notes}
+                    onChange={(e) => updateSection(sIdx, { advisor_notes: e.target.value })}
+                    rows={2}
+                    placeholder="Add your own notes for this section…"
+                    className="w-full bg-outsail-gray-50 border border-outsail-gray-200 rounded-lg px-3 py-2 text-sm text-outsail-slate resize-none focus:outline-none focus:border-outsail-teal focus:ring-1 focus:ring-outsail-teal/20"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ----------------------------------------------------------------
 // Coming Soon placeholder
 // ----------------------------------------------------------------
 function ComingSoon({ label, description }: { label: string; description?: string }) {
@@ -1045,7 +1405,7 @@ export function ProjectTabs({ project, blueprintSections }: ProjectTabsProps) {
         <DiscoveryTab project={project} />
       )}
       {activeTab === 'question-guide' && (
-        <ComingSoon label="Question Guide" description="Generate and manage your discovery question guide here." />
+        <QuestionGuideTab project={project} />
       )}
       {activeTab === 'pathway' && (
         <ComingSoon label="Pathway" description="Manage scheduling, self-service chat, and stakeholder invitations here." />
