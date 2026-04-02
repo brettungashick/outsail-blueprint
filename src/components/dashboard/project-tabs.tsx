@@ -7,6 +7,7 @@ import type { SectionKey, SectionDepth, SectionStatus, ProjectTier, ProjectStatu
 import { TechStackViz } from '@/components/tech-stack/tech-stack-viz'
 import type { TechStackSystemRow, IntegrationRow } from '@/components/tech-stack/tech-stack-builder'
 import { BlueprintTab } from './blueprint-tab'
+import { OutputsTab } from './outputs-tab'
 
 // ----------------------------------------------------------------
 // Exported interface — used by page.tsx
@@ -2496,7 +2497,7 @@ export function ProjectTabs({ project, blueprintSections }: ProjectTabsProps) {
         />
       )}
       {activeTab === 'outputs' && (
-        <ComingSoon label="Outputs" description="Outputs will be available after Blueprint approval." />
+        <OutputsTab projectId={project.id} projectStatus={project.status} />
       )}
     </div>
   )

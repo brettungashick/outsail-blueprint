@@ -78,7 +78,14 @@ export function WorkspaceSidebar({
       disabled: !['client_review', 'approved'].includes(projectStatus ?? ''),
       gated: false,
     },
-    { label: 'Outputs',              href: null,                           icon: FileOutput,      exact: false, disabled: true,              gated: false },
+    {
+      label: 'Outputs',
+      href: ['approved', 'outputs'].includes(projectStatus ?? '') ? '/workspace/outputs' : null,
+      icon: FileOutput,
+      exact: false,
+      disabled: !['approved', 'outputs'].includes(projectStatus ?? ''),
+      gated: false,
+    },
   ]
 
   return (
