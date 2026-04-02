@@ -128,6 +128,9 @@ export interface Project {
   recommended_sections: string | null
   client_edits: string | null
   summary_approved_at: Date | null
+  // Phase C
+  scheduling_link: string | null
+  question_guide: string | null
   // Phase D
   generated_at: Date | null
   generation_count: number

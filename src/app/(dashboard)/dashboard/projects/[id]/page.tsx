@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm'
 import { Badge } from '@/components/ui/badge'
 import { ProjectTabs } from '@/components/dashboard/project-tabs'
 import type { ProjectStatus, ProjectTier, SectionKey, SectionDepth, SectionStatus } from '@/types'
+import type { ProjectTabsProject } from '@/components/dashboard/project-tabs'
 
 export const metadata = {
   title: 'Project Details',
@@ -53,6 +54,13 @@ interface ProjectRow {
   status: string
   scope_notes: string | null
   readiness_level: string | null
+  discovery_summary: string | null
+  recommended_sections: string | null
+  client_edits: string | null
+  summary_approved_at: Date | null
+  self_service_enabled: boolean | null
+  scheduling_link: string | null
+  question_guide: string | null
   created_by: string | null
   created_at: Date | null
   updated_at: Date | null
@@ -132,7 +140,7 @@ export default async function ProjectDetailPage({
     // Non-fatal: render with empty sections
   }
 
-  const typedProject = {
+  const typedProject: ProjectTabsProject = {
     id: project.id,
     name: project.name,
     client_company_name: project.client_company_name,
@@ -142,6 +150,13 @@ export default async function ProjectDetailPage({
     status: (project.status ?? 'intake') as ProjectStatus,
     scope_notes: project.scope_notes,
     readiness_level: project.readiness_level,
+    discovery_summary: project.discovery_summary,
+    recommended_sections: project.recommended_sections,
+    client_edits: project.client_edits,
+    summary_approved_at: project.summary_approved_at,
+    self_service_enabled: project.self_service_enabled ?? false,
+    scheduling_link: project.scheduling_link,
+    question_guide: project.question_guide,
     created_at: project.created_at,
     updated_at: project.updated_at,
   }

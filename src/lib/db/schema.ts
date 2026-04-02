@@ -78,6 +78,9 @@ export const projects = sqliteTable('projects', {
   recommended_sections: text('recommended_sections'), // JSON: AI-suggested Blueprint sections
   client_edits: text('client_edits'),                // JSON: client corrections + flags
   summary_approved_at: integer('summary_approved_at', { mode: 'timestamp' }),
+  // Phase C — Deep discovery pathway
+  scheduling_link: text('scheduling_link'),           // link shown to client while waiting
+  question_guide: text('question_guide'),             // JSON: advisor question guide (per section)
   // Phase D — Blueprint generation tracking
   generated_at: integer('generated_at', { mode: 'timestamp' }),
   generation_count: integer('generation_count').default(0),

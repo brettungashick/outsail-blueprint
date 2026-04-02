@@ -133,6 +133,8 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
       generation_count INTEGER DEFAULT 0,
       generation_metadata TEXT,
       self_service_enabled INTEGER DEFAULT 0,
+      scheduling_link TEXT,
+      question_guide TEXT,
       created_by TEXT,
       created_at INTEGER,
       updated_at INTEGER
@@ -413,6 +415,8 @@ const ALTER_COLUMNS: Array<{ col: string; sql: string }> = [
   { col: 'projects.generation_count',       sql: `ALTER TABLE projects ADD COLUMN generation_count INTEGER DEFAULT 0` },
   { col: 'projects.generation_metadata',    sql: `ALTER TABLE projects ADD COLUMN generation_metadata TEXT` },
   { col: 'projects.self_service_enabled',   sql: `ALTER TABLE projects ADD COLUMN self_service_enabled INTEGER DEFAULT 0` },
+  { col: 'projects.scheduling_link',        sql: `ALTER TABLE projects ADD COLUMN scheduling_link TEXT` },
+  { col: 'projects.question_guide',         sql: `ALTER TABLE projects ADD COLUMN question_guide TEXT` },
   { col: 'projects.created_by',             sql: `ALTER TABLE projects ADD COLUMN created_by TEXT` },
   { col: 'projects.created_at',             sql: `ALTER TABLE projects ADD COLUMN created_at INTEGER` },
   { col: 'projects.updated_at',             sql: `ALTER TABLE projects ADD COLUMN updated_at INTEGER` },
