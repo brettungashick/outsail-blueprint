@@ -38,6 +38,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Password login is not available for this account type.' }, { status: 403 })
   }
 
+  if (user.is_active === false) {
+    return NextResponse.json({ error: 'This account has been deactivated. Contact your administrator.' }, { status: 403 })
+  }
+
   const sessionToken = await createSessionToken(user.id, user.email, user.role as 'admin' | 'advisor')
 
   const response = NextResponse.json({

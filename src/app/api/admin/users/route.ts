@@ -27,6 +27,7 @@ export async function GET() {
       name: users.name,
       role: users.role,
       must_change_password: users.must_change_password,
+      is_active: users.is_active,
       created_at: users.created_at,
       updated_at: users.updated_at,
     })

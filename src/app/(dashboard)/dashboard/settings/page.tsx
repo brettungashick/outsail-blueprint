@@ -2,9 +2,12 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { users } from '@/lib/db/schema'
+import { users, projects, projectMembers } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { SettingsClient } from './_settings-client'
+import { getLogoUrl } from '@/lib/db/app-settings'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Settings',
@@ -51,6 +54,7 @@ export default async function SettingsPage() {
     name: string | null
     role: string
     must_change_password: boolean | null
+    is_active: boolean | null
     created_at: string | null
   }> = []
 
@@ -63,6 +67,7 @@ export default async function SettingsPage() {
           name: users.name,
           role: users.role,
           must_change_password: users.must_change_password,
+          is_active: users.is_active,
           created_at: users.created_at,
         })
         .from(users)
@@ -73,6 +78,57 @@ export default async function SettingsPage() {
     }
   }
 
+  // Fetch all projects with advisor name (admin only)
+  type ProjectRow = {
+    id: string
+    client_company_name: string
+    status: string | null
+    tier: string | null
+    updated_at: string | null
+    created_at: string | null
+    advisor_name: string | null
+    advisor_email: string | null
+  }
+  let allProjects: ProjectRow[] = []
+
+  if (displayRole === 'admin') {
+    try {
+      // Drizzle left join to get advisor per project
+      const advisorMembers = db
+        .select({
+          project_id: projectMembers.project_id,
+          user_id: projectMembers.user_id,
+        })
+        .from(projectMembers)
+        .where(eq(projectMembers.role, 'advisor'))
+        .as('advisor_members')
+
+      const rows = await db
+        .select({
+          id: projects.id,
+          client_company_name: projects.client_company_name,
+          status: projects.status,
+          tier: projects.tier,
+          updated_at: projects.updated_at,
+          created_at: projects.created_at,
+          advisor_name: users.name,
+          advisor_email: users.email,
+        })
+        .from(projects)
+        .leftJoin(advisorMembers, eq(advisorMembers.project_id, projects.id))
+        .leftJoin(users, eq(users.id, advisorMembers.user_id))
+        .orderBy(desc(projects.updated_at))
+        .all()
+
+      allProjects = rows as unknown as ProjectRow[]
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  // Fetch current logo
+  const currentLogo = await getLogoUrl()
+
   return (
     <SettingsClient
       currentUserId={session.userId}
@@ -82,6 +138,8 @@ export default async function SettingsPage() {
       displayRole={displayRole}
       initials={initials}
       users={allUsers}
+      projects={allProjects}
+      currentLogo={currentLogo}
     />
   )
 }

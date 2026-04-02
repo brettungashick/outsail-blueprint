@@ -13,6 +13,7 @@ interface WorkspaceSidebarProps {
   userName?: string
   companyName?: string
   techStackComplete?: boolean
+  logoUrl?: string
 }
 
 const STORAGE_KEY = 'outsail_workspace_sidebar_collapsed'
@@ -22,6 +23,7 @@ export function WorkspaceSidebar({
   userName,
   companyName,
   techStackComplete = false,
+  logoUrl,
 }: WorkspaceSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -77,19 +79,26 @@ export function WorkspaceSidebar({
         <div className="flex items-center h-16 px-4 border-b border-white/10 flex-shrink-0">
           {isCollapsed ? (
             <div className="flex items-center justify-center w-full">
-              <div className="w-9 h-9 rounded-lg bg-outsail-teal flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-sm">OS</span>
-              </div>
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="Logo" className="w-9 h-9 object-contain rounded-lg" />
+              ) : (
+                <span className="font-bold text-sm" style={{ color: '#4277c7' }}>OS</span>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-lg bg-outsail-teal flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-sm">OS</span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-white font-semibold text-sm leading-tight truncate">OutSail</p>
-                <p className="text-white/50 text-xs leading-tight truncate">Blueprint</p>
-              </div>
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="Logo" className="h-9 max-w-[140px] object-contain rounded flex-shrink-0" />
+              ) : (
+                <div className="min-w-0">
+                  <p className="font-bold text-base leading-tight truncate" style={{ color: '#4277c7' }}>
+                    OutSail
+                  </p>
+                  <p className="text-white/50 text-xs leading-tight truncate">Blueprint</p>
+                </div>
+              )}
             </div>
           )}
         </div>

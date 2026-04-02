@@ -23,13 +23,14 @@ export async function PATCH(
   const session = await requireAdmin()
   if (!session) return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
 
-  const body = await request.json() as { role?: string; name?: string }
+  const body = await request.json() as { role?: string; name?: string; is_active?: boolean }
   const patch: Record<string, unknown> = { updated_at: new Date() }
 
   if (body.role && ['admin', 'advisor', 'client', 'vendor'].includes(body.role)) {
     patch.role = body.role
   }
   if ('name' in body) patch.name = body.name ?? null
+  if (typeof body.is_active === 'boolean') patch.is_active = body.is_active
 
   if (Object.keys(patch).length === 1) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })

@@ -48,6 +48,10 @@ export async function GET(request: NextRequest) {
       user = inserted
     }
 
+    if (user.is_active === false) {
+      return NextResponse.redirect(`${appUrl}/login?error=account_deactivated`)
+    }
+
     // Create a 30-day session token
     const sessionToken = await createSessionToken(
       user.id,

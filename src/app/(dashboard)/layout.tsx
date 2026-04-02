@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { Sidebar } from '@/components/layout/sidebar'
+import { getLogoUrl } from '@/lib/db/app-settings'
 
 export default async function DashboardLayout({
   children,
@@ -42,9 +43,11 @@ export default async function DashboardLayout({
     // Non-fatal: sidebar will fall back to session email
   }
 
+  const logoUrl = await getLogoUrl()
+
   return (
     <div className="flex h-screen overflow-hidden bg-outsail-gray-50">
-      <Sidebar userEmail={userEmail} userName={userName} />
+      <Sidebar userEmail={userEmail} userName={userName} logoUrl={logoUrl ?? undefined} />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-content mx-auto px-6 py-8">{children}</div>
       </main>

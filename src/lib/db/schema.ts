@@ -33,6 +33,7 @@ export const users = sqliteTable('users', {
   organization_id: text('organization_id').references(() => organizations.id),
   password_hash: text('password_hash'),
   must_change_password: integer('must_change_password', { mode: 'boolean' }).default(false),
+  is_active: integer('is_active', { mode: 'boolean' }).default(true),
   created_at: integer('created_at', { mode: 'timestamp' }).$defaultFn(
     () => new Date()
   ),
@@ -561,3 +562,14 @@ export type NewGeneratedOutput = typeof generatedOutputs.$inferInsert
 
 export type Vendor = typeof vendors.$inferSelect
 export type NewVendor = typeof vendors.$inferInsert
+
+// ============================================================
+// app_settings — key/value store for global app configuration
+// ============================================================
+export const appSettings = sqliteTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: text('value'),
+  updated_at: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+})
+
+export type AppSetting = typeof appSettings.$inferSelect

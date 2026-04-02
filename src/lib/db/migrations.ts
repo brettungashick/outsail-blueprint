@@ -356,6 +356,14 @@ const CREATE_TABLES: Array<{ name: string; sql: string }> = [
       updated_at INTEGER
     )`,
   },
+  {
+    name: 'app_settings',
+    sql: `CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY NOT NULL,
+      value TEXT,
+      updated_at INTEGER
+    )`,
+  },
 ]
 
 // ── ALTER TABLE statements (covers all non-PK columns for all tables) ─────────
@@ -381,6 +389,7 @@ const ALTER_COLUMNS: Array<{ col: string; sql: string }> = [
   { col: 'users.organization_id',           sql: `ALTER TABLE users ADD COLUMN organization_id TEXT` },
   { col: 'users.password_hash',             sql: `ALTER TABLE users ADD COLUMN password_hash TEXT` },
   { col: 'users.must_change_password',      sql: `ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0` },
+  { col: 'users.is_active',                 sql: `ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1` },
   { col: 'users.created_at',               sql: `ALTER TABLE users ADD COLUMN created_at INTEGER` },
   { col: 'users.updated_at',               sql: `ALTER TABLE users ADD COLUMN updated_at INTEGER` },
 
@@ -560,6 +569,11 @@ const ALTER_COLUMNS: Array<{ col: string; sql: string }> = [
   { col: 'generated_outputs.version',       sql: `ALTER TABLE generated_outputs ADD COLUMN version INTEGER DEFAULT 1` },
   { col: 'generated_outputs.generated_by',  sql: `ALTER TABLE generated_outputs ADD COLUMN generated_by TEXT` },
   { col: 'generated_outputs.created_at',    sql: `ALTER TABLE generated_outputs ADD COLUMN created_at INTEGER` },
+
+  // vendors
+  // app_settings
+  { col: 'app_settings.value',          sql: `ALTER TABLE app_settings ADD COLUMN value TEXT` },
+  { col: 'app_settings.updated_at',     sql: `ALTER TABLE app_settings ADD COLUMN updated_at INTEGER` },
 
   // vendors
   { col: 'vendors.product_name',        sql: `ALTER TABLE vendors ADD COLUMN product_name TEXT NOT NULL DEFAULT ''` },

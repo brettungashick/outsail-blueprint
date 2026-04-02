@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { users, projects, projectMembers, techStackSystems } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { WorkspaceSidebar } from '@/components/workspace/workspace-sidebar'
+import { getLogoUrl } from '@/lib/db/app-settings'
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = cookies()
@@ -66,6 +67,8 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     // Non-fatal
   }
 
+  const logoUrl = await getLogoUrl()
+
   return (
     <div className="flex h-screen overflow-hidden bg-outsail-gray-50">
       <WorkspaceSidebar
@@ -73,6 +76,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         userName={userName}
         companyName={companyName}
         techStackComplete={techStackComplete}
+        logoUrl={logoUrl ?? undefined}
       />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-content mx-auto px-6 py-8">{children}</div>
