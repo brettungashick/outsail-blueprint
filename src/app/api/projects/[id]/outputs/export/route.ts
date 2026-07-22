@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { generatedOutputs, projectMembers, projects } from '@/lib/db/schema'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
+import { hasProjectAccess } from '@/lib/auth/access'
 import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
@@ -28,14 +29,21 @@ export async function GET(
     return new Response('Missing output_id or format', { status: 400 })
   }
 
-  // Verify access
-  const membership = await db
-    .select({ role: projectMembers.role })
+  // Verify access — the caller must be the project creator, a member, or an admin
+  const accessProject = await db
+    .select({ created_by: projects.created_by })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .get()
+  if (!accessProject) return new Response('Not found', { status: 404 })
+
+  const members = await db
+    .select({ user_id: projectMembers.user_id })
     .from(projectMembers)
     .where(eq(projectMembers.project_id, projectId))
-    .get()
+    .all()
 
-  if (!membership && session.role !== 'advisor' && session.role !== 'admin') {
+  if (!hasProjectAccess(accessProject, members, session)) {
     return new Response('Forbidden', { status: 403 })
   }
 

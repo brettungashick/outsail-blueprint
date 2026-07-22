@@ -17,6 +17,7 @@ import {
   chatContexts,
 } from '@/lib/db/schema'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
+import { hasProjectAccess } from '@/lib/auth/access'
 
 // DELETE /api/projects/[id] — delete a project and all its related data
 export async function DELETE(
@@ -50,18 +51,13 @@ export async function DELETE(
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   }
 
-  const isMember = await db
-    .select({ id: projectMembers.id })
+  const members = await db
+    .select({ user_id: projectMembers.user_id })
     .from(projectMembers)
     .where(eq(projectMembers.project_id, projectId))
     .all()
 
-  const hasAccess =
-    project.created_by === session.userId ||
-    isMember.some(() => true) ||
-    session.role === 'admin'
-
-  if (!hasAccess) {
+  if (!hasProjectAccess(project, members, session)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

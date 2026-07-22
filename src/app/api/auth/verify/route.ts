@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { verifyMagicToken, createSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
+import { canStartSession } from '@/lib/auth/access'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 
@@ -23,33 +24,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Look up or create the user
-    let user = await db
+    // Look up the user. We NEVER auto-create here: a valid magic link only
+    // proves control of an email address, not that the address was ever
+    // invited. Only pre-existing (explicitly provisioned/invited) users may
+    // receive a session. Unknown emails are rejected.
+    const user = await db
       .select()
       .from(users)
       .where(eq(users.email, payload.email))
       .get()
 
-    if (!user) {
-      const inserted = await db
-        .insert(users)
-        .values({
-          email: payload.email,
-          role: 'advisor',
-        })
-        .returning()
-        .get()
-
-      if (!inserted) {
-        console.error('[auth/verify] Failed to insert new user for', payload.email)
-        return NextResponse.redirect(`${appUrl}/login?error=server_error`)
-      }
-
-      user = inserted
-    }
-
-    if (user.is_active === false) {
-      return NextResponse.redirect(`${appUrl}/login?error=account_deactivated`)
+    if (!canStartSession(user)) {
+      const reason = user ? 'account_deactivated' : 'unknown_email'
+      console.warn('[auth/verify] rejected session for', payload.email, '-', reason)
+      return NextResponse.redirect(`${appUrl}/login?error=${reason}`)
     }
 
     // Create a 30-day session token

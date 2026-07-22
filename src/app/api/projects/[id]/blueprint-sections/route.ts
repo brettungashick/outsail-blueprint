@@ -77,12 +77,14 @@ export async function PATCH(
 
   // Verify the section belongs to this project
   const section = await db
-    .select({ id: blueprintSections.id })
+    .select({ project_id: blueprintSections.project_id })
     .from(blueprintSections)
     .where(eq(blueprintSections.id, section_id))
     .get()
 
-  if (!section) return NextResponse.json({ error: 'Section not found' }, { status: 404 })
+  if (!section || section.project_id !== params.id) {
+    return NextResponse.json({ error: 'Section not found' }, { status: 404 })
+  }
 
   const patch: Record<string, unknown> = { updated_at: new Date() }
   if (updates.ai_narrative_current !== undefined) patch.ai_narrative_current = updates.ai_narrative_current

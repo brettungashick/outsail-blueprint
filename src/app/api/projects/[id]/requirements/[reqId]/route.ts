@@ -3,40 +3,62 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { projects, projectMembers, requirements } from '@/lib/db/schema'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
+import { hasProjectAccess } from '@/lib/auth/access'
+import type { SessionPayload } from '@/types'
 
 export const dynamic = 'force-dynamic'
+
+// Shared gate: advisor/admin session that has access to the path project AND
+// where the target requirement actually belongs to that project (prevents
+// cross-project writes via a foreign reqId).
+async function authorizeRequirement(
+  req: NextRequest,
+  projectId: string,
+  reqId: string
+): Promise<{ auth: SessionPayload } | { error: NextResponse }> {
+  const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)
+  if (!sessionCookie?.value) return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  const auth = await verifySessionToken(sessionCookie.value)
+  if (!auth) return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  if (auth.role !== 'advisor' && auth.role !== 'admin') {
+    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+  }
+
+  const project = await db
+    .select({ created_by: projects.created_by })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .get()
+  if (!project) return { error: NextResponse.json({ error: 'Project not found' }, { status: 404 }) }
+
+  const members = await db
+    .select({ user_id: projectMembers.user_id })
+    .from(projectMembers)
+    .where(eq(projectMembers.project_id, projectId))
+    .all()
+  if (!hasProjectAccess(project, members, auth)) {
+    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+  }
+
+  const target = await db
+    .select({ project_id: requirements.project_id })
+    .from(requirements)
+    .where(eq(requirements.id, reqId))
+    .get()
+  if (!target || target.project_id !== projectId) {
+    return { error: NextResponse.json({ error: 'Requirement not found' }, { status: 404 }) }
+  }
+
+  return { auth }
+}
 
 // PATCH /api/projects/[id]/requirements/[reqId]
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string; reqId: string } }
 ) {
-  const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)
-  if (!sessionCookie?.value) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const auth = await verifySessionToken(sessionCookie.value)
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (auth.role !== 'advisor' && auth.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  const project = await db
-    .select({ created_by: projects.created_by })
-    .from(projects)
-    .where(eq(projects.id, params.id))
-    .get()
-  if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
-
-  const members = await db
-    .select({ user_id: projectMembers.user_id })
-    .from(projectMembers)
-    .where(eq(projectMembers.project_id, params.id))
-    .all()
-
-  const hasAccess =
-    project.created_by === auth.userId ||
-    members.some((m) => m.user_id === auth.userId) ||
-    auth.role === 'admin'
-  if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const gate = await authorizeRequirement(req, params.id, params.reqId)
+  if ('error' in gate) return gate.error
 
   let body: {
     module?: string
@@ -82,12 +104,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string; reqId: string } }
 ) {
-  const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)
-  if (!sessionCookie?.value) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const auth = await verifySessionToken(sessionCookie.value)
-  if (!auth || (auth.role !== 'advisor' && auth.role !== 'admin')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const gate = await authorizeRequirement(req, params.id, params.reqId)
+  if ('error' in gate) return gate.error
 
   await db.delete(requirements).where(eq(requirements.id, params.reqId))
   return NextResponse.json({ ok: true })

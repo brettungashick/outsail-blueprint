@@ -36,7 +36,9 @@ export async function PATCH(
     .from(discoverySessions)
     .where(eq(discoverySessions.id, sessionId))
     .get()
-  if (!dbSession) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+  if (!dbSession || dbSession.project_id !== projectId) {
+    return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+  }
   if (!dbSession.transcript_extractions) return NextResponse.json({ error: 'No extractions to update' }, { status: 400 })
 
   const body = await req.json() as {
