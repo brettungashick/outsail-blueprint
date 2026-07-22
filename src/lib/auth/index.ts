@@ -1,13 +1,25 @@
 import { SignJWT, jwtVerify } from 'jose'
 import type { MagicLinkPayload, SessionPayload, UserRole } from '@/types'
 
-const MAGIC_LINK_SECRET = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET ?? 'fallback-dev-secret-change-in-production'
-)
+// Fail closed: never fall back to a hardcoded signing key. A missing secret in
+// any environment would let anyone forge session/magic-link tokens (including
+// an admin session), so refuse to run without it. Set NEXTAUTH_SECRET in the
+// environment (and in .env.local for local development).
+const AUTH_SECRET = process.env.NEXTAUTH_SECRET
+if (!AUTH_SECRET) {
+  throw new Error(
+    'NEXTAUTH_SECRET is not set. Refusing to start with an insecure default signing key. ' +
+      'Set NEXTAUTH_SECRET in the environment.'
+  )
+}
 
-const SESSION_SECRET = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET ?? 'fallback-dev-secret-change-in-production'
-)
+// Domain-separate the two token classes so a magic-link token can never be
+// replayed as a session token (and vice versa), even if the claim-shape checks
+// were ever relaxed. Session tokens keep the raw secret so existing sessions
+// remain valid; magic-link tokens are 15-minute ephemeral, so re-keying them is
+// harmless.
+const SESSION_SECRET = new TextEncoder().encode(AUTH_SECRET)
+const MAGIC_LINK_SECRET = new TextEncoder().encode(`${AUTH_SECRET}:magic-link`)
 
 // ----------------------------------------------------------------
 // Magic link token — 15-minute expiry
