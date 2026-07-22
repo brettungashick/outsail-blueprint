@@ -3,23 +3,28 @@ import type { MagicLinkPayload, SessionPayload, UserRole } from '@/types'
 
 // Fail closed: never fall back to a hardcoded signing key. A missing secret in
 // any environment would let anyone forge session/magic-link tokens (including
-// an admin session), so refuse to run without it. Set NEXTAUTH_SECRET in the
-// environment (and in .env.local for local development).
-const AUTH_SECRET = process.env.NEXTAUTH_SECRET
-if (!AUTH_SECRET) {
+// an admin session), so refuse to start without them. The two token classes use
+// independent secrets so a magic-link token can never be replayed as a session
+// token, and vice versa. Set both in the environment (and in .env.local for
+// local development).
+const SESSION_SECRET_VALUE = process.env.NEXTAUTH_SECRET
+if (!SESSION_SECRET_VALUE) {
   throw new Error(
     'NEXTAUTH_SECRET is not set. Refusing to start with an insecure default signing key. ' +
-      'Set NEXTAUTH_SECRET in the environment.'
+      'Set NEXTAUTH_SECRET (the session-token signing key) in the environment.'
   )
 }
 
-// Domain-separate the two token classes so a magic-link token can never be
-// replayed as a session token (and vice versa), even if the claim-shape checks
-// were ever relaxed. Session tokens keep the raw secret so existing sessions
-// remain valid; magic-link tokens are 15-minute ephemeral, so re-keying them is
-// harmless.
-const SESSION_SECRET = new TextEncoder().encode(AUTH_SECRET)
-const MAGIC_LINK_SECRET = new TextEncoder().encode(`${AUTH_SECRET}:magic-link`)
+const MAGIC_LINK_SECRET_VALUE = process.env.MAGIC_LINK_SECRET
+if (!MAGIC_LINK_SECRET_VALUE) {
+  throw new Error(
+    'MAGIC_LINK_SECRET is not set. Refusing to start with an insecure default signing key. ' +
+      'Set MAGIC_LINK_SECRET (the magic-link-token signing key) in the environment.'
+  )
+}
+
+const SESSION_SECRET = new TextEncoder().encode(SESSION_SECRET_VALUE)
+const MAGIC_LINK_SECRET = new TextEncoder().encode(MAGIC_LINK_SECRET_VALUE)
 
 // ----------------------------------------------------------------
 // Magic link token — 15-minute expiry
