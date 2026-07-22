@@ -12,6 +12,7 @@ import {
   blueprintSections,
 } from '@/lib/db/schema'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
+import { hasProjectAccess } from '@/lib/auth/access'
 import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
@@ -232,8 +233,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Verify access
-  const memberCheck = await db
-    .select({ project_id: projectMembers.project_id })
+  const members = await db
+    .select({ user_id: projectMembers.user_id })
     .from(projectMembers)
     .where(eq(projectMembers.project_id, project_id))
     .all()
@@ -244,11 +245,9 @@ export async function POST(req: NextRequest) {
     .get()
 
   if (!project) return new Response(JSON.stringify({ error: 'Project not found' }), { status: 404 })
-  const hasAccess =
-    project.created_by === authSession.userId ||
-    memberCheck.some(() => true) ||
-    authSession.role === 'admin'
-  if (!hasAccess) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 })
+  if (!hasProjectAccess(project, members, authSession)) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 })
+  }
 
   // Load tech stack
   const systems = await db

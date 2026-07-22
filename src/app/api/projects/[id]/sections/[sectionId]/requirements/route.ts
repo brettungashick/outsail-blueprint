@@ -2,10 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
 import { createId } from '@paralleldrive/cuid2'
 import { db } from '@/lib/db'
-import { projects, projectMembers, requirements } from '@/lib/db/schema'
+import { projects, projectMembers, requirements, blueprintSections } from '@/lib/db/schema'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
+
+// Confirm a section id actually belongs to the given project, so a member of
+// one project can't read/write another project's section via a foreign id.
+async function sectionBelongsToProject(sectionId: string, projectId: string): Promise<boolean> {
+  const section = await db
+    .select({ project_id: blueprintSections.project_id })
+    .from(blueprintSections)
+    .where(eq(blueprintSections.id, sectionId))
+    .get()
+  return !!section && section.project_id === projectId
+}
 
 async function verifyAdvisorAccess(req: NextRequest, projectId: string) {
   const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)
@@ -43,6 +54,10 @@ export async function GET(
   const auth = await verifyAdvisorAccess(req, params.id)
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  if (!(await sectionBelongsToProject(params.sectionId, params.id))) {
+    return NextResponse.json({ error: 'Section not found' }, { status: 404 })
+  }
+
   const reqs = await db
     .select()
     .from(requirements)
@@ -59,6 +74,10 @@ export async function POST(
 ) {
   const auth = await verifyAdvisorAccess(req, params.id)
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (!(await sectionBelongsToProject(params.sectionId, params.id))) {
+    return NextResponse.json({ error: 'Section not found' }, { status: 404 })
+  }
 
   let body: {
     module: string

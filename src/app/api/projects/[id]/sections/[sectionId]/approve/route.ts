@@ -38,6 +38,17 @@ export async function POST(
     auth.role === 'admin'
   if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  // The section must belong to THIS project (prevents approving another
+  // project's section via a foreign sectionId).
+  const section = await db
+    .select({ project_id: blueprintSections.project_id })
+    .from(blueprintSections)
+    .where(eq(blueprintSections.id, params.sectionId))
+    .get()
+  if (!section || section.project_id !== params.id) {
+    return NextResponse.json({ error: 'Section not found' }, { status: 404 })
+  }
+
   const now = new Date()
 
   // Approve this section

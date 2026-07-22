@@ -42,6 +42,15 @@ export async function GET(
   const auth = await verifyAccess(req, params.id)
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const ownSection = await db
+    .select({ project_id: blueprintSections.project_id })
+    .from(blueprintSections)
+    .where(eq(blueprintSections.id, params.sectionId))
+    .get()
+  if (!ownSection || ownSection.project_id !== params.id) {
+    return NextResponse.json({ error: 'Section not found' }, { status: 404 })
+  }
+
   const comments = await db
     .select({
       id: blueprintComments.id,
@@ -72,11 +81,13 @@ export async function POST(
 
   // Verify section belongs to project
   const section = await db
-    .select({ id: blueprintSections.id })
+    .select({ project_id: blueprintSections.project_id })
     .from(blueprintSections)
     .where(eq(blueprintSections.id, params.sectionId))
     .get()
-  if (!section) return NextResponse.json({ error: 'Section not found' }, { status: 404 })
+  if (!section || section.project_id !== params.id) {
+    return NextResponse.json({ error: 'Section not found' }, { status: 404 })
+  }
 
   let body: { content: string; parent_comment_id?: string }
   try {

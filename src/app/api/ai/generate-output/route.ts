@@ -14,6 +14,7 @@ import {
   generatedOutputs,
 } from '@/lib/db/schema'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
+import { hasProjectAccess } from '@/lib/auth/access'
 import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
@@ -385,14 +386,6 @@ export async function POST(req: NextRequest) {
     return new Response('Missing project_id or output_type', { status: 400 })
   }
 
-  // Verify membership
-  const membership = await db
-    .select({ id: projectMembers.id })
-    .from(projectMembers)
-    .where(eq(projectMembers.project_id, project_id))
-    .get()
-  if (!membership) return new Response('Not found', { status: 404 })
-
   // Load project
   const project = await db
     .select()
@@ -400,6 +393,16 @@ export async function POST(req: NextRequest) {
     .where(eq(projects.id, project_id))
     .get()
   if (!project) return new Response('Not found', { status: 404 })
+
+  // Verify the caller is actually a member of THIS project (or its creator/an admin)
+  const members = await db
+    .select({ user_id: projectMembers.user_id })
+    .from(projectMembers)
+    .where(eq(projectMembers.project_id, project_id))
+    .all()
+  if (!hasProjectAccess(project, members, session)) {
+    return new Response('Forbidden', { status: 403 })
+  }
 
   // Load all data
   const [sections, reqs, allDecisions, allQuestions, systems, allIntegrations] = await Promise.all([
